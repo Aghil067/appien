@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+    body {
+        @apply bg-gray-50 text-gray-900 transition-colors duration-200;
+        font-feature-settings: 'kern' 1, 'liga' 1;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    :root.dark body {
+        @apply bg-slate-950 text-gray-100;
+    }
+
+    /* Professional heading styles */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        letter-spacing: -0.02em;
+    }
+
+    /* Custom Scrollbar for Light Mode */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-gray-200 hover:bg-gray-300 rounded-full;
+    }
+
+    /* Custom Scrollbar for Dark Mode */
+    :root.dark ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    :root.dark ::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+
+    :root.dark ::-webkit-scrollbar-thumb {
+        @apply bg-slate-800 hover:bg-slate-700 rounded-full;
+    }
+
+    /* Selection Color */
+    ::selection {
+        @apply bg-orange-400/30 text-orange-900;
+    }
+
+    :root.dark ::selection {
+        @apply bg-orange-500/30 text-orange-100;
+    }
+
+    /* Smooth scroll */
+    html {
+        scroll-behavior: smooth;
+    }
+}
