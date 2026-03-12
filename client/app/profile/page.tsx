@@ -59,13 +59,13 @@ export default function ProfilePage() {
         const fetchData = async () => {
             try {
                 // 1. Fetch User Profile
-                const profileRes = await axios.get(`${API_BASE}/api/users/me`, {
+                const profileRes = await axios.get(`${API_BASE}/users/me`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setProfile(profileRes.data);
 
                 // 2. Fetch User Activity (Asked & Answered)
-                const activityRes = await axios.get(`${API_BASE}/api/users/activity`, {
+                const activityRes = await axios.get(`${API_BASE}/users/activity`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setMyQuestions(activityRes.data.asked);

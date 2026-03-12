@@ -76,7 +76,7 @@ export default function InboxPage() {
 
     const fetchChats = (token: string) => {
         setIsRefreshing(true);
-        axios.get(`${API_BASE}/api/chat/list`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_BASE}/chat/list`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => setChats(res.data))
             .catch(err => {
                 if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -93,7 +93,7 @@ export default function InboxPage() {
         const token = localStorage.getItem('token');
         if (!token) { router.push('/login'); return; }
 
-        axios.get(`${API_BASE}/api/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_BASE}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => setCurrentUserId(res.data._id))
             .catch(err => {
                 if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -135,7 +135,7 @@ export default function InboxPage() {
         e.stopPropagation();
         const token = localStorage.getItem('token');
         if (!token) return;
-        await axios.post(`${API_BASE}/api/chat/${chatId}/accept`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.post(`${API_BASE}/chat/${chatId}/accept`, {}, { headers: { Authorization: `Bearer ${token}` } });
         fetchChats(token);
     };
 
@@ -148,7 +148,7 @@ export default function InboxPage() {
             replyContext: replyingTo
         };
 
-        await axios.post(`${API_BASE}/api/chat/${selectedChat._id}/message`,
+        await axios.post(`${API_BASE}/chat/${selectedChat._id}/message`,
             payload, { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -189,7 +189,7 @@ export default function InboxPage() {
                 if (selectedChat?._id === chatId) setSelectedChat(null);
 
                 try {
-                    await axios.delete(`${API_BASE}/api/chat/${chatId}`, {
+                    await axios.delete(`${API_BASE}/chat/${chatId}`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     toast.success("Conversation deleted");
@@ -517,7 +517,7 @@ export default function InboxPage() {
                                         async () => {
                                             const token = localStorage.getItem('token');
                                             try {
-                                                await axios.post(`${API_BASE}/api/users/block`, { targetId: otherId }, { headers: { Authorization: `Bearer ${token}` } });
+                                                await axios.post(`${API_BASE}/users/block`, { targetId: otherId }, { headers: { Authorization: `Bearer ${token}` } });
                                                 // Optimistically remove chat
                                                 setChats(prev => prev.filter(c => c._id !== contextMenu.chatId));
                                                 if (selectedChat._id === contextMenu.chatId) setSelectedChat(null);

@@ -25,7 +25,7 @@ export default function BlockedUsersPage() {
 
     const fetchBlocked = async (token: string) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/users/blocked`, {
+            const res = await axios.get(`${API_BASE}/users/blocked`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setBlocked(res.data);
@@ -35,7 +35,7 @@ export default function BlockedUsersPage() {
 
     const handleUnblock = async (targetId: string) => {
         const token = localStorage.getItem('token');
-        await axios.post(`${API_BASE}/api/users/unblock`,
+        await axios.post(`${API_BASE}/users/unblock`,
             { targetId },
             { headers: { Authorization: `Bearer ${token}` } }
         );

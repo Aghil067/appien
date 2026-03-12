@@ -22,7 +22,7 @@ export default function LoginPage() {
         if (!phoneNumber || phoneNumber.length < 10) return alert("Please enter a valid phone number");
         setIsLoading(true);
         try {
-            const res = await axios.post(`${API_BASE}/api/auth/send-otp`, { phoneNumber });
+            const res = await axios.post(`${API_BASE}/auth/send-otp`, { phoneNumber });
             setIsNewUser(res.data.isNewUser);
             if (!res.data.isNewUser) {
                 setExistingName(res.data.username);
@@ -40,7 +40,7 @@ export default function LoginPage() {
         if (isNewUser && !username) return alert("Please enter a username");
         setIsLoading(true);
         try {
-            const res = await axios.post(`${API_BASE}/api/auth/verify-otp`, {
+            const res = await axios.post(`${API_BASE}/auth/verify-otp`, {
                 phoneNumber,
                 otp,
                 username: isNewUser ? username : undefined,

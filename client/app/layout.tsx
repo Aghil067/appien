@@ -69,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             if (!token) return;
 
             try {
-                const { data } = await axios.get(`${API_BASE}/api/users/settings`, {
+                const { data } = await axios.get(`${API_BASE}/users/settings`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 

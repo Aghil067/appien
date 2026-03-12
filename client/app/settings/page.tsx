@@ -33,7 +33,7 @@ export default function SettingsPage() {
         const token = localStorage.getItem('token');
         if (!token) { router.push('/login'); return; }
 
-        axios.get(`${API_BASE}/api/users/settings`, {
+        axios.get(`${API_BASE}/users/settings`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => {
@@ -94,7 +94,7 @@ export default function SettingsPage() {
 
         // 3. Backend Update (Fire and forget, but handle error)
         try {
-            await axios.put(`${API_BASE}/api/users/settings`,
+            await axios.put(`${API_BASE}/users/settings`,
                 { [key]: value },
                 {
                     headers: { Authorization: `Bearer ${token}` }
@@ -137,7 +137,7 @@ export default function SettingsPage() {
                             });
                         }
 
-                        await axios.post(`${API_BASE}/api/notifications/subscribe`, sub, {
+                        await axios.post(`${API_BASE}/notifications/subscribe`, sub, {
                             headers: { Authorization: `Bearer ${token}` }
                         });
                         alert("Notifications Enabled!");
@@ -153,7 +153,7 @@ export default function SettingsPage() {
                     const reg = await navigator.serviceWorker.ready;
                     const sub = await reg.pushManager.getSubscription();
                     if (sub) await sub.unsubscribe();
-                    await axios.post(`${API_BASE}/api/notifications/unsubscribe`, {}, {
+                    await axios.post(`${API_BASE}/notifications/unsubscribe`, {}, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                 }
@@ -205,7 +205,7 @@ export default function SettingsPage() {
         if (!token) return;
 
         try {
-            await axios.put(`${API_BASE}/api/users/settings`,
+            await axios.put(`${API_BASE}/users/settings`,
                 { username: trimmed },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -235,7 +235,7 @@ export default function SettingsPage() {
         const token = localStorage.getItem('token');
         try {
             // 1. Request OTP
-            await axios.post(`${API_BASE}/api/users/delete-otp`, {}, {
+            await axios.post(`${API_BASE}/users/delete-otp`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -244,7 +244,7 @@ export default function SettingsPage() {
             if (!otp) return;
 
             // 3. Verify & Delete
-            await axios.delete(`${API_BASE}/api/users/me`, {
+            await axios.delete(`${API_BASE}/users/me`, {
                 headers: { Authorization: `Bearer ${token}` },
                 data: { otp }
             });

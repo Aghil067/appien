@@ -65,14 +65,14 @@ export default function Navbar() {
             return;
         }
         try {
-            const userRes = await axios.get(`${API_BASE}/api/users/me`, {
+            const userRes = await axios.get(`${API_BASE}/users/me`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUserId(userRes.data._id);
             setUsername(userRes.data.username || 'User');
             setIsPrivate(userRes.data.settings?.isPrivate || false);
 
-            const notifRes = await axios.get(`${API_BASE}/api/notifications`, {
+            const notifRes = await axios.get(`${API_BASE}/notifications`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setNotifications(notifRes.data);
@@ -120,7 +120,7 @@ export default function Navbar() {
 
             const token = localStorage.getItem('token');
             if (token) {
-                await axios.post(`${API_BASE}/api/notifications/read`, {}, {
+                await axios.post(`${API_BASE}/notifications/read`, {}, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             }

@@ -114,7 +114,7 @@ const QuestionCard = ({
 
         const token = localStorage.getItem('token');
         try {
-            await axios.post(`${API_BASE}/api/questions/${q._id}/answers/${answerId}/action`,
+            await axios.post(`${API_BASE}/questions/${q._id}/answers/${answerId}/action`,
                 { action }, { headers: { Authorization: `Bearer ${token}` } }
             );
         } catch (err) { toast.error("Action failed"); }
@@ -216,7 +216,7 @@ const QuestionCard = ({
 
                                                                 try {
                                                                     const token = localStorage.getItem('token');
-                                                                    await axios.post(`${API_BASE}/api/thank-you`, {
+                                                                    await axios.post(`${API_BASE}/thank-you`, {
                                                                         questionId: q._id,
                                                                         answerId: ans._id,
                                                                         message: customMessage || undefined
@@ -243,7 +243,7 @@ const QuestionCard = ({
                                                                 "Are you sure you want to block this user? Their content will be hidden.",
                                                                 async () => {
                                                                     const token = localStorage.getItem('token');
-                                                                    await axios.post(`${API_BASE}/api/users/block`, { targetId: ans.responderId }, { headers: { Authorization: `Bearer ${token}` } });
+                                                                    await axios.post(`${API_BASE}/users/block`, { targetId: ans.responderId }, { headers: { Authorization: `Bearer ${token}` } });
                                                                     setProfileMenuId(null);
                                                                     window.location.reload();
                                                                 },
@@ -354,7 +354,7 @@ const QuestionCard = ({
                                                                         async () => {
                                                                             const token = localStorage.getItem('token');
                                                                             try {
-                                                                                await axios.post(`${API_BASE}/api/chat/request`,
+                                                                                await axios.post(`${API_BASE}/chat/request`,
                                                                                     { questionId: q._id, responderId: ans.responderId },
                                                                                     { headers: { Authorization: `Bearer ${token}` } }
                                                                                 );
@@ -595,13 +595,13 @@ export default function Home() {
             if (!isLoadMore) setIsLoading(true); else setIsLoadingMore(true);
 
             // Use API_BASE here
-            const userRes = await axios.get(`${API_BASE}/api/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+            const userRes = await axios.get(`${API_BASE}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
             setCurrentUserId(userRes.data._id);
             setBlockedUsers(userRes.data.blockedUsers || []);
 
             const skip = isLoadMore ? questions.length : 0;
             // Use API_BASE here
-            const qRes = await axios.get(`${API_BASE}/api/questions/nearby?skip=${skip}`, { headers: { Authorization: `Bearer ${token}` } });
+            const qRes = await axios.get(`${API_BASE}/questions/nearby?skip=${skip}`, { headers: { Authorization: `Bearer ${token}` } });
 
             if (qRes.data.length < 20) setHasMore(false);
 
@@ -610,7 +610,7 @@ export default function Home() {
             } else {
                 setQuestions(qRes.data);
                 // Use API_BASE here
-                const aRes = await axios.get(`${API_BASE}/api/questions/archive`, { headers: { Authorization: `Bearer ${token}` } });
+                const aRes = await axios.get(`${API_BASE}/questions/archive`, { headers: { Authorization: `Bearer ${token}` } });
                 setArchivedQuestions(aRes.data);
             }
         } catch (e) {
@@ -636,7 +636,7 @@ export default function Home() {
             async () => {
                 const token = localStorage.getItem('token');
                 try {
-                    await axios.delete(`${API_BASE}/api/questions/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+                    await axios.delete(`${API_BASE}/questions/${id}`, { headers: { Authorization: `Bearer ${token}` } });
                     // Optimistic update
                     setQuestions(prev => prev.filter(q => q._id !== id));
                     toast.success("Question deleted");
@@ -678,7 +678,7 @@ export default function Home() {
                 const token = localStorage.getItem('token');
                 try {
                     // Use API_BASE here
-                    const res = await axios.post(`${API_BASE}/api/questions/check-similar`, { text: questionText }, { headers: { Authorization: `Bearer ${token}` } });
+                    const res = await axios.post(`${API_BASE}/questions/check-similar`, { text: questionText }, { headers: { Authorization: `Bearer ${token}` } });
                     setSuggestions(res.data);
                 } catch (e) { console.error(e); }
             } else { setSuggestions([]); }
@@ -708,7 +708,7 @@ export default function Home() {
         const token = localStorage.getItem('token');
         try {
             // Use API_BASE here
-            await axios.post(`${API_BASE}/api/questions`, { text: questionText }, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(`${API_BASE}/questions`, { text: questionText }, { headers: { Authorization: `Bearer ${token}` } });
             setQuestionText('');
             setSuggestions([]);
             toast.success("Question posted!");
@@ -733,13 +733,13 @@ export default function Home() {
 
         try {
             // Use API_BASE here
-            await axios.post(`${API_BASE}/api/questions/${questionId}/answer`, { text: replyText, parentId: replyingToId }, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(`${API_BASE}/questions/${questionId}/answer`, { text: replyText, parentId: replyingToId }, { headers: { Authorization: `Bearer ${token}` } });
             setReplyText(''); setReplyingToId(null);
 
             // --- FETCH SIMILAR TO ENGAGE USER ---
             if (currentQ) {
                 try {
-                    const simRes = await axios.post(`${API_BASE}/api/questions/similar-nearby`, {
+                    const simRes = await axios.post(`${API_BASE}/questions/similar-nearby`, {
                         text: currentQ.text,
                         excludeId: questionId,
                         location: currentQ.userLocation
