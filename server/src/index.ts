@@ -53,7 +53,25 @@ if (!MONGO_URI || !JWT_SECRET) {
 const app = express();
 const server = http.createServer(app);
 // Restart trigger
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    },
+    transports: ["websocket", "polling"]
+});
+
+// Real-time Socket Handlers
+io.on('connection', (socket) => {
+    socket.on('join_user', (userId) => {
+        socket.join(String(userId));
+        console.log(`👤 User joined room: ${userId}`);
+    });
+
+    socket.on('disconnect', () => {
+        // console.log('Client disconnected');
+    });
+});
 
 app.use(helmet()); // Secure HTTP Headers
 app.use(cors()); // Allow CORS (Configure strictly in production)

@@ -105,7 +105,9 @@ export default function InboxPage() {
 
         fetchChats(token);
 
-        const socket = io(API_BASE);
+        const socket = io(API_BASE, {
+            transports: ["websocket", "polling"]
+        });
 
         socket.on(`chat_update_${selectedChat?._id}`, (updatedChat: Chat) => {
             setSelectedChat(updatedChat);

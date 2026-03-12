@@ -95,7 +95,9 @@ export default function Navbar() {
     // --- 2. REAL-TIME SOCKET LISTENER ---
     useEffect(() => {
         if (!userId) return;
-        const socket = io(API_BASE);
+        const socket = io(API_BASE, {
+            transports: ["websocket", "polling"]
+        });
 
         // Join my private room
         socket.emit('join_user', userId);

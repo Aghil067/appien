@@ -649,7 +649,9 @@ export default function Home() {
     useEffect(() => {
         if (isLoading) return;
         // Use API_BASE for Socket too
-        const socket = io(API_BASE);
+        const socket = io(API_BASE, {
+            transports: ["websocket", "polling"]
+        });
 
         socket.on('new_question_nearby', (newQ: Question) => {
             // Basic check: don't add if asker is blocked
