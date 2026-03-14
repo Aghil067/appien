@@ -7,8 +7,8 @@ import {
     MoreVertical, Reply, Smile, Paperclip, Trash2, ArrowLeft,
     Clock, RefreshCw, UserX
 } from 'lucide-react';
-import { io } from 'socket.io-client';
 import { formatDistanceToNow } from 'date-fns';
+import getSocket from '@/lib/socket';
 import { toast } from 'react-toastify';
 import ConfirmModal from '@/components/ConfirmModal';
 
@@ -105,15 +105,16 @@ export default function InboxPage() {
 
         fetchChats(token);
 
-        const socket = io(API_BASE, {
-            transports: ["websocket", "polling"]
-        });
+        const socket = getSocket();
 
-        socket.on(`chat_update_${selectedChat?._id}`, (updatedChat: Chat) => {
-            setSelectedChat(updatedChat);
-            setChats(prev => prev.map(c => c._id === updatedChat._id ? updatedChat : c));
-            scrollToBottom();
-        });
+        const chatEvent = `chat_update_${selectedChat?._id}`;
+        if (selectedChat?._id) {
+            socket.on(chatEvent, (updatedChat: Chat) => {
+                setSelectedChat(updatedChat);
+                setChats(prev => prev.map(c => c._id === updatedChat._id ? updatedChat : c));
+                scrollToBottom();
+            });
+        }
 
         socket.on('chat_updated_global', (updatedChat: Chat) => {
             setChats(prev => prev.map(c => c._id === updatedChat._id ? updatedChat : c));
@@ -123,7 +124,8 @@ export default function InboxPage() {
         document.addEventListener('click', handleClick);
 
         return () => {
-            socket.disconnect();
+            if (selectedChat?._id) socket.off(chatEvent);
+            socket.off('chat_updated_global');
             document.removeEventListener('click', handleClick);
         };
     }, [selectedChat?._id, router]);

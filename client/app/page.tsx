@@ -9,8 +9,8 @@ import {
     History, CheckCircle2, AlertCircle, ArrowRight, Loader2, ArrowDown, Trash2, MapPin, Share2
 } from 'lucide-react';
 import { AnimatedSmile, AnimatedSad } from '@/components/AnimatedIcons';
-import { io } from 'socket.io-client';
 import { formatDistanceToNow } from 'date-fns';
+import getSocket from '@/lib/socket';
 import { toast } from 'react-toastify';
 import ConfirmModal from '@/components/ConfirmModal';
 
@@ -649,9 +649,7 @@ export default function Home() {
     useEffect(() => {
         if (isLoading) return;
         // Use API_BASE for Socket too
-        const socket = io(API_BASE, {
-            transports: ["websocket", "polling"]
-        });
+        const socket = getSocket();
 
         socket.on('new_question_nearby', (newQ: Question) => {
             // Basic check: don't add if asker is blocked
@@ -671,7 +669,11 @@ export default function Home() {
 
         socket.on('question_deleted', (id: string) => setQuestions(prev => prev.filter(q => q._id !== id)));
 
-        return () => { socket.disconnect(); };
+        return () => {
+            socket.off('new_question_nearby');
+            socket.off('question_updated');
+            socket.off('question_deleted');
+        };
     }, [isLoading, blockedUsers]); // Depend on blockedUsers to refresh closure
 
     useEffect(() => {

@@ -5,8 +5,8 @@ import Image from 'next/image';
 import axios from 'axios';
 import { usePathname } from 'next/navigation';
 import { User, MessageSquarePlus, Settings, LayoutGrid, LucideIcon, Bell, MessageSquare, CheckCircle, MessageCircle, Home, Heart } from 'lucide-react';
-import { io } from 'socket.io-client';
 import { formatDistanceToNow } from 'date-fns';
+import getSocket from '@/lib/socket';
 
 import API_BASE from '@/lib/api';
 
@@ -95,9 +95,7 @@ export default function Navbar() {
     // --- 2. REAL-TIME SOCKET LISTENER ---
     useEffect(() => {
         if (!userId) return;
-        const socket = io(API_BASE, {
-            transports: ["websocket", "polling"]
-        });
+        const socket = getSocket();
 
         // Join my private room
         socket.emit('join_user', userId);
@@ -111,7 +109,7 @@ export default function Navbar() {
             }
         });
 
-        return () => { socket.disconnect(); };
+        return () => { socket.off('notification'); };
     }, [userId]);
 
     // --- 3. HANDLERS ---
