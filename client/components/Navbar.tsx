@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import axios from 'axios';
 import { usePathname } from 'next/navigation';
-import { User, MessageSquarePlus, Settings, LayoutGrid, LucideIcon, Bell, MessageSquare, CheckCircle, MessageCircle, Home, Heart } from 'lucide-react';
+import { User, MessageSquarePlus, Settings, LayoutGrid, LucideIcon, Bell, MessageSquare, CheckCircle, MessageCircle, Home, Heart, MapPin, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import getSocket from '@/lib/socket';
 
@@ -21,7 +21,7 @@ interface NavItemProps {
 interface Notification {
     _id: string;
     recipientId: string;
-    type: 'REPLY' | 'HELPFUL' | 'CHAT_REQUEST' | 'NEW_QUESTION' | 'THANK_YOU';
+    type: 'REPLY' | 'HELPFUL' | 'CHAT_REQUEST' | 'NEW_QUESTION' | 'THANK_YOU' | 'QUESTION_SHARED' | 'WAITING_REPLIES';
     text: string;
     isRead: boolean;
     createdAt: string;
@@ -99,6 +99,7 @@ export default function Navbar() {
 
         // Join my private room
         socket.emit('join_user', userId);
+        console.log(`[Navbar] Joined user room: ${userId}`);
 
         // Listen for generic event sent to my room
         socket.on('notification', (newNotif: Notification) => {
@@ -111,6 +112,7 @@ export default function Navbar() {
 
         return () => { socket.off('notification'); };
     }, [userId]);
+
 
     // --- 3. HANDLERS ---
     const handleToggleNotifications = async () => {
@@ -155,6 +157,7 @@ export default function Navbar() {
                                     src="/appien-logo.png"
                                     alt="Appien"
                                     fill
+                                    sizes="(max-width: 768px) 160px, 192px"
                                     className="object-contain mix-blend-multiply dark:hidden"
                                     priority
                                 />
@@ -214,13 +217,18 @@ export default function Navbar() {
                                         ) : (
                                             notifications.map((n, i) => (
                                                 <div key={i} className="p-4 border-b border-gray-50 dark:border-slate-800 hover:bg-orange-50/30 dark:hover:bg-orange-900/10 transition-colors flex gap-3 cursor-pointer group">
-                                                    <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 ${n.type === 'THANK_YOU' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' :
+                                                    <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 ${
+                                                        n.type === 'THANK_YOU' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' :
                                                         n.type === 'HELPFUL' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' :
-                                                            'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
-                                                        }`}>
+                                                        n.type === 'QUESTION_SHARED' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                                                        n.type === 'WAITING_REPLIES' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                                                        'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+                                                    }`}>
                                                         {n.type === 'THANK_YOU' ? <Heart size={16} className="fill-pink-600 dark:fill-pink-400" /> :
                                                             n.type === 'HELPFUL' ? <CheckCircle size={16} className="fill-emerald-100 dark:fill-emerald-900/30" /> :
-                                                                <MessageCircle size={16} className="fill-orange-100 dark:fill-orange-900/30" />}
+                                                            n.type === 'QUESTION_SHARED' ? <MapPin size={16} /> :
+                                                            n.type === 'WAITING_REPLIES' ? <Clock size={16} /> :
+                                                            <MessageCircle size={16} className="fill-orange-100 dark:fill-orange-900/30" />}
                                                     </div>
                                                     <div>
                                                         <p className="text-sm text-gray-700 dark:text-gray-300 leading-snug group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">{n.text}</p>

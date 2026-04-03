@@ -715,7 +715,9 @@ export default function Home() {
             await axios.post(`${API_BASE}/questions`, { text: questionText }, { headers: { Authorization: `Bearer ${token}` } });
             setQuestionText('');
             setSuggestions([]);
+
             toast.success("Question posted!");
+
         } catch (error: any) {
             if (axios.isAxiosError(error) && error.response?.status === 400) {
                 const errorDetails = error.response?.data?.details;
@@ -729,6 +731,7 @@ export default function Home() {
             }
         }
     };
+
 
     const handleReply = async (questionId: string) => {
         if (!replyText) return;
@@ -763,7 +766,7 @@ export default function Home() {
     return (
         <>
             <ShareHiddenCard data={shareData} cardRef={shareRef} />
-            <main className="grid grid-cols-12 gap-4 sm:gap-6 items-start min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 pb-24 md:pb-28 pt-20 sm:pt-24 md:pt-8 bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
+            <main className="grid grid-cols-12 gap-4 sm:gap-6 items-start min-h-screen max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8 pb-24 md:pb-28 pt-[88px] sm:pt-[96px] bg-transparent transition-colors duration-300">
 
                 <ConfirmModal
                     isOpen={confirmState.isOpen}
@@ -848,7 +851,7 @@ export default function Home() {
                             <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Quick Ask</h3>
                         </div>
                         <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-                            {["Quiet cafés nearby", "Best street food", "Libraries open late"].map((txt, i) => (
+                            {["Which food places are better for talking than eating?", "Any places that stay chill after 8pm?", "Any calm places for late evening hangouts?"].map((txt, i) => (
                                 <button
                                     key={i}
                                     onClick={() => setQuestionText(txt)}

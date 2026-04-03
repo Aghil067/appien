@@ -2,61 +2,65 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Loader2, MapPin, Shield, Smartphone, Lock } from 'lucide-react';
+import { ArrowRight, Loader2, MapPin, Shield } from 'lucide-react';
 import Image from 'next/image';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 import API_BASE from '@/lib/api';
 
 export default function LoginPage() {
     const [step, setStep] = useState(1);
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [otp, setOtp] = useState('');
     const [username, setUsername] = useState('');
     const [location, setLocation] = useState('HSR');
-    const [isNewUser, setIsNewUser] = useState(true);
     const [existingName, setExistingName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
-    const handleSendOtp = async () => {
-        if (!phoneNumber || phoneNumber.length < 10) return alert("Please enter a valid phone number");
+    const handleGoogleSuccess = async (credentialResponse: any) => {
         setIsLoading(true);
         try {
-            const res = await axios.post(`${API_BASE}/auth/send-otp`, { phoneNumber });
-            setIsNewUser(res.data.isNewUser);
-            if (!res.data.isNewUser) {
+            const res = await axios.post(`${API_BASE}/auth/google`, { 
+                credential: credentialResponse.credential 
+            });
+            
+            localStorage.setItem('token', res.data.token);
+            window.dispatchEvent(new Event('user-updated'));
+            
+            if (res.data.isNewUser) {
+                setStep(2);
+            } else {
                 setExistingName(res.data.username);
+                router.push('/');
             }
-            setStep(2);
         } catch (e) {
-            alert("Failed to send OTP. Try again.");
+            alert("Failed to authenticate with Google.");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleVerifyOtp = async () => {
-        if (!otp || otp.length < 4) return alert("Enter valid 4-digit OTP");
-        if (isNewUser && !username) return alert("Please enter a username");
+    const handleCompleteProfile = async () => {
+        if (!username || username.length < 3) return alert("Please enter a valid username");
         setIsLoading(true);
         try {
-            const res = await axios.post(`${API_BASE}/auth/verify-otp`, {
-                phoneNumber,
-                otp,
-                username: isNewUser ? username : undefined,
-                location: isNewUser ? location : undefined
+            const token = localStorage.getItem('token');
+            await axios.put(`${API_BASE}/users/settings`, {
+                username,
+                location
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-            localStorage.setItem('token', res.data.token);
             window.dispatchEvent(new Event('user-updated'));
             router.push('/');
         } catch (e) {
-            alert("Invalid OTP");
+            alert("Failed to update profile. Username might be taken.");
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
         <div className="flex flex-col min-h-[100dvh] bg-[#F8FAFC] dark:bg-slate-950 relative overflow-x-hidden transition-colors duration-300">
 
             {/* Background Gradient Mesh */}
@@ -70,6 +74,7 @@ export default function LoginPage() {
                             src="/appien-logo.png"
                             alt="Appien"
                             fill
+                            sizes="(max-width: 768px) 144px, 160px"
                             className="object-contain mix-blend-multiply dark:hidden"
                             priority
                         />
@@ -91,9 +96,9 @@ export default function LoginPage() {
             </header>
 
             {/* --- MAIN CONTENT --- */}
-            <div className="flex-1 flex flex-col justify-center items-center w-full z-10 px-4 md:px-8 pt-24 pb-8">
+            <div className="flex-1 flex flex-col justify-center items-center w-full z-10 px-4 md:px-8 lg:px-12 pt-20 md:pt-24 pb-6 md:pb-8">
 
-                <div className="w-full max-w-[1100px] flex flex-col lg:flex-row bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl lg:rounded-[32px] rounded-[24px] shadow-[0_20px_60px_-10px_rgba(0,0,0,0.08)] dark:shadow-none border border-white/60 dark:border-slate-800 overflow-hidden min-h-[auto] lg:min-h-[680px] relative transition-all duration-500">
+                <div className="w-full max-w-[1100px] flex flex-col lg:flex-row bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl lg:rounded-[32px] rounded-[24px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] dark:shadow-none border border-white/60 dark:border-slate-800 overflow-hidden min-h-[auto] lg:min-h-[640px] relative transition-all duration-500">
 
                     {/* LEFT PANEL: Visuals (Desktop Only) */}
                     <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-slate-900 to-slate-800 relative flex-col justify-between p-12 text-white overflow-hidden">
@@ -153,124 +158,100 @@ export default function LoginPage() {
 
                     {/* RIGHT PANEL: Form */}
                     <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12 lg:p-16 relative bg-transparent">
-                        <div className="w-full max-w-md space-y-8">
-
+                        <div className="w-full max-w-md space-y-6 md:space-y-8 relative z-10">
                             {/* Header Text */}
-                            <div className="text-center lg:text-left space-y-2">
-                                <h3 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white tracking-tight">
-                                    {step === 1 ? "Welcome Back" : (isNewUser ? "Create Profile" : "Verify OTP")}
+                            <div className="text-center lg:text-left space-y-3">
+                                <h3 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                                    {step === 1 ? "Get Started" : "Create Profile"}
                                 </h3>
-                                <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">
-                                    {step === 1 ? "Enter your mobile number to get started." : <span>We sent a code to <span className="text-slate-900 dark:text-white font-semibold">+91 {phoneNumber}</span></span>}
+                                <p className="text-slate-500 dark:text-slate-400 font-medium text-sm md:text-base max-w-[280px] lg:max-w-none mx-auto lg:mx-0">
+                                    {step === 1 ? "Join your local neighborhood and see where everyone's hanging out." : "Finish setting up your account."}
                                 </p>
                             </div>
 
                             {/* FORM */}
-                            <div className="space-y-5">
+                            <div className="space-y-6 md:space-y-8">
                                 {step === 1 ? (
-                                    <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
-                                        <div className="space-y-2">
-                                            <label className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Mobile Number</label>
-                                            <div className="relative group">
-                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-3 pr-3 border-r border-slate-200 dark:border-slate-700 h-6">
-                                                    <Smartphone size={18} className="text-slate-400 dark:text-slate-500 group-focus-within:text-orange-500 dark:group-focus-within:text-orange-400 transition-colors" />
-                                                    <span className="text-slate-600 dark:text-slate-300 font-semibold text-sm">+91</span>
-                                                </div>
-                                                <input
-                                                    type="tel"
-                                                    className="w-full bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl pl-[100px] pr-4 py-3.5 text-lg font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/50 dark:focus:ring-orange-500/30 focus:border-orange-500 dark:focus:border-orange-500/50 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-normal shadow-sm"
-                                                    placeholder="98765 00000"
-                                                    value={phoneNumber}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value.replace(/\D/g, '');
-                                                        if (val.length <= 10) setPhoneNumber(val);
+                                    <div className="flex flex-col items-center sm:items-stretch lg:items-start pt-2 md:pt-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                                        
+                                        <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 flex flex-col items-center justify-center space-y-6 shadow-sm relative overflow-hidden">
+                                            
+                                            {/* Subtle Color Accent Top Bar */}
+                                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-amber-500"></div>
+
+                                            <div className="w-full flex justify-center pt-2">
+                                                <GoogleLogin
+                                                    onSuccess={handleGoogleSuccess}
+                                                    onError={() => {
+                                                        console.log('Login Failed');
+                                                        alert("Google Login Failed");
                                                     }}
-                                                    autoFocus
+                                                    useOneTap
+                                                    theme="outline"
+                                                    shape="rectangular"
+                                                    size="large"
+                                                    text="continue_with"
+                                                    width="300"
                                                 />
                                             </div>
+
+                                            <div className="w-full flex items-center gap-3 opacity-90 pt-2">
+                                                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                                                <p className="text-[10px] text-orange-500 dark:text-orange-400 font-bold uppercase tracking-widest">Secure Login</p>
+                                                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                                            </div>
+
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+                                                By continuing, you agree to our <span className="underline cursor-pointer hover:text-orange-500 transition-colors">Terms</span> & <span className="underline cursor-pointer hover:text-orange-500 transition-colors">Privacy Policy</span>.
+                                            </p>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
-                                        <div className="space-y-2">
-                                            <label className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">OTP Code</label>
+                                        <div className="animate-in slide-in-from-bottom-2 fade-in duration-500 space-y-2">
+                                            <label className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Choose Username</label>
                                             <div className="relative group">
-                                                <Lock size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-orange-500 dark:group-focus-within:text-orange-400 transition-colors" />
+                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-semibold text-lg group-focus-within:text-orange-500 dark:group-focus-within:text-orange-400 transition-colors">@</span>
                                                 <input
                                                     type="text"
-                                                    className="w-full bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl pl-14 pr-4 py-3.5 text-2xl font-bold text-slate-800 dark:text-white tracking-[0.5em] outline-none focus:ring-2 focus:ring-orange-500/50 dark:focus:ring-orange-500/30 focus:border-orange-500 dark:focus:border-orange-500/50 transition-all placeholder:tracking-normal placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-normal placeholder:text-base shadow-sm text-center"
-                                                    placeholder="••••"
-                                                    maxLength={4}
-                                                    value={otp}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value.replace(/\D/g, '');
-                                                        if (val.length <= 4) setOtp(val);
-                                                    }}
-                                                    autoFocus
+                                                    className="w-full bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl pl-12 pr-4 py-3.5 text-lg font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/50 dark:focus:ring-orange-500/30 focus:border-orange-500 dark:focus:border-orange-500/50 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-normal shadow-sm"
+                                                    placeholder="username"
+                                                    value={username}
+                                                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
                                                 />
                                             </div>
                                         </div>
-                                        {isNewUser && (
-                                            <>
-                                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-500 space-y-2">
-                                                    <label className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Choose Username</label>
-                                                    <div className="relative group">
-                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-semibold text-lg group-focus-within:text-orange-500 dark:group-focus-within:text-orange-400 transition-colors">@</span>
-                                                        <input
-                                                            type="text"
-                                                            className="w-full bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl pl-12 pr-4 py-3.5 text-lg font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/50 dark:focus:ring-orange-500/30 focus:border-orange-500 dark:focus:border-orange-500/50 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-normal shadow-sm"
-                                                            placeholder="username"
-                                                            value={username}
-                                                            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100 space-y-2">
-                                                    <label className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Your Location</label>
-                                                    <div className="relative group">
-                                                        <MapPin size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-orange-500 dark:group-focus-within:text-orange-400 transition-colors pointer-events-none" />
-                                                        <select
-                                                            value={location}
-                                                            onChange={(e) => setLocation(e.target.value)}
-                                                            className="w-full bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl pl-14 pr-4 py-3.5 text-lg font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/50 dark:focus:ring-orange-500/30 focus:border-orange-500 dark:focus:border-orange-500/50 transition-all shadow-sm appearance-none cursor-pointer"
-                                                        >
-                                                            <option value="HSR">HSR Layout</option>
-                                                            <option value="Koramangala">Koramangala</option>
-                                                            <option value="Both">Both Areas</option>
-                                                        </select>
-                                                        <svg className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                    </div>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-600 ml-1 font-medium">Select 'Both' to receive notifications from all areas</p>
-                                                </div>
-                                            </>
-                                        )}
-                                        {!isNewUser && existingName && (
-                                            <div className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-900/20 dark:to-slate-900/50 p-4 rounded-2xl text-center border border-orange-100 dark:border-orange-900/30 shadow-sm animate-in zoom-in-95 duration-300">
-                                                <p className="text-sm text-orange-900 dark:text-orange-300 font-medium">Welcome back,</p>
-                                                <p className="text-lg font-bold text-orange-600 dark:text-orange-400">@{existingName}</p>
+                                        <div className="animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100 space-y-2">
+                                            <label className="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Your Location</label>
+                                            <div className="relative group">
+                                                <MapPin size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-orange-500 dark:group-focus-within:text-orange-400 transition-colors pointer-events-none" />
+                                                <select
+                                                    value={location}
+                                                    onChange={(e) => setLocation(e.target.value)}
+                                                    className="w-full bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl pl-14 pr-4 py-3.5 text-lg font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/50 dark:focus:ring-orange-500/30 focus:border-orange-500 dark:focus:border-orange-500/50 transition-all shadow-sm appearance-none cursor-pointer"
+                                                >
+                                                    <option value="HSR">HSR Layout</option>
+                                                    <option value="Koramangala">Koramangala</option>
+                                                    <option value="Both">Both Areas</option>
+                                                </select>
+                                                <svg className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
                                             </div>
-                                        )}
+                                            <p className="text-xs text-slate-500 dark:text-slate-600 ml-1 font-medium">Select 'Both' to receive notifications from all areas</p>
+                                        </div>
+
+                                        <div className="space-y-3 pt-2">
+                                            <button
+                                                onClick={handleCompleteProfile}
+                                                disabled={isLoading || username.length < 3}
+                                                className="w-full bg-gradient-to-r from-[#ffb732] to-amber-500 text-white py-3.5 rounded-2xl font-bold text-base shadow-lg shadow-orange-200/60 dark:shadow-orange-900/40 hover:shadow-orange-300/70 dark:hover:shadow-orange-900/60 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2 active:scale-95 duration-300 group"
+                                            >
+                                                {isLoading ? <Loader2 className="animate-spin" size={20} /> : <>Complete Profile <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
-
-                                {/* Action Button */}
-                                <div className="space-y-3 pt-2">
-                                    <button
-                                        onClick={step === 1 ? handleSendOtp : handleVerifyOtp}
-                                        disabled={isLoading || (step === 1 && phoneNumber.length < 10) || (step === 2 && otp.length < 4)}
-                                        className="w-full bg-gradient-to-r from-[#ffb732] to-amber-500 text-white py-3.5 rounded-2xl font-bold text-base shadow-lg shadow-orange-200/60 dark:shadow-orange-900/40 hover:shadow-orange-300/70 dark:hover:shadow-orange-900/60 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2 active:scale-95 duration-300 group"
-                                    >
-                                        {isLoading ? <Loader2 className="animate-spin" size={20} /> : (step === 1 ? <>Continue <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></> : "Verify & Login")}
-                                    </button>
-
-                                    {step === 2 && (
-                                        <button onClick={() => { setStep(1); setOtp(''); }} className="w-full text-center text-xs text-slate-400 dark:text-slate-500 hover:text-orange-600 dark:hover:text-orange-400 font-semibold transition-colors py-2">
-                                            Entered wrong number? <span className="underline decoration-2 underline-offset-2">Change</span>
-                                        </button>
-                                    )}
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -286,5 +267,6 @@ export default function LoginPage() {
 
             </div>
         </div>
+        </GoogleOAuthProvider>
     );
 }

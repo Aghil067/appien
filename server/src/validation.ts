@@ -1,12 +1,7 @@
 import { z } from 'zod';
 
-export const sendOtpSchema = z.object({
-    phoneNumber: z.string().min(10, "Phone number too short").max(15, "Phone number too long"),
-});
-
-export const verifyOtpSchema = z.object({
-    phoneNumber: z.string().min(10).max(15),
-    otp: z.string().length(4, "OTP must be 4 digits"),
+export const googleAuthSchema = z.object({
+    credential: z.string().min(1, "Google credential required"),
     username: z.string().min(3).max(20).optional(),
     location: z.string().optional(),
 });
@@ -51,9 +46,7 @@ export const blockUserSchema = z.object({
     targetId: z.string(),
 });
 
-export const deleteUserSchema = z.object({
-    otp: z.string().length(4),
-});
+export const deleteUserSchema = z.object({});
 
 export const geocodeSchema = z.object({
     lat: z.number(),

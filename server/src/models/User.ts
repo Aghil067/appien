@@ -1,10 +1,10 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IUser extends Document {
-  phoneNumber: string;
+  email: string;
+  name?: string;
+  picture?: string;
   username?: string;
-  otp?: string;
-  otpExpires?: Date;
   isVerified: boolean;
   location: string;
   settings: {
@@ -31,10 +31,10 @@ export interface IUser extends Document {
 }
 
 const UserSchema: Schema = new Schema({
-  phoneNumber: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+  name: { type: String },
+  picture: { type: String },
   username: { type: String },
-  otp: { type: String },
-  otpExpires: { type: Date },
   isVerified: { type: Boolean, default: false },
   location: { type: String, default: 'Unknown Location' },
   settings: {

@@ -29,10 +29,13 @@ import Notification from './models/Notification';
 import { determineExpiryWithAI } from './services/ai';
 import { updateTrustedBadgeOnAction } from './services/trustedBadge';
 import {
-    sendOtpSchema, verifyOtpSchema, updateSettingsSchema, postQuestionSchema,
+    googleAuthSchema, updateSettingsSchema, postQuestionSchema,
     checkSimilarSchema, postAnswerSchema, actionSchema, chatRequestSchema,
     blockUserSchema, deleteUserSchema, geocodeSchema, similarNearbySchema, thankYouSchema
 } from './validation';
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 dotenv.config();
 
@@ -43,7 +46,6 @@ const PUBLIC_VAPID_KEY = process.env.VAPID_PUBLIC_KEY;
 const PRIVATE_VAPID_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@appien.com';
 const ADMIN_SECRET = process.env.ADMIN_SECRET; // For protecting admin endpoints
-const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
 
 if (!MONGO_URI || !JWT_SECRET) {
     console.error("❌ CRITICAL: Missing MONGO_URI or JWT_SECRET in environment variables.");
@@ -98,9 +100,20 @@ if (PUBLIC_VAPID_KEY && PRIVATE_VAPID_KEY) {
     webpush.setVapidDetails(VAPID_EMAIL, PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY);
 }
 
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch((err) => console.error(err));
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI as string)
+    .then(async () => {
+        console.log('MongoDB Connected');
+        try {
+            await mongoose.connection.collection('users').dropIndex('phoneNumber_1');
+            console.log('Dropped legacy phoneNumber_1 index successfully to fix Google Login issues.');
+        } catch (e: any) {
+            if (e.codeName !== 'IndexNotFound') {
+                console.error('Error dropping index:', e.message);
+            }
+        }
+    })
+    .catch(err => console.error(err));
 
 // --- VALIDATION MIDDLEWARE ---
 const validate = (schema: z.ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
@@ -115,33 +128,7 @@ const validate = (schema: z.ZodSchema) => (req: Request, res: Response, next: Ne
     }
 };
 
-// --- SMS HELPER (Fast2SMS) ---
-const sendSmsOtp = async (phoneNumber: string, otp: string): Promise<void> => {
-    if (!FAST2SMS_API_KEY) {
-        console.warn('⚠️  FAST2SMS_API_KEY not set. OTP will only be logged.');
-        console.log(`📲 OTP FOR ${phoneNumber}: ${otp}`);
-        return;
-    }
-    try {
-        // TODO (PRODUCTION): Switch to 'dlt' route once DLT registration is approved.
-        // Use: route: 'dlt', sender_id: process.env.FAST2SMS_SENDER_ID, template_id: process.env.FAST2SMS_TEMPLATE_ID
-        const response = await axios.get('https://www.fast2sms.com/dev/bulkV2', {
-            params: {
-                authorization: FAST2SMS_API_KEY,
-                route: 'q',           // Quick SMS (DEV ONLY — random sender name, switch to DLT for production)
-                message: `Your Appien OTP is ${otp}. Valid for 5 minutes. Do not share it with anyone.`,
-                language: 'english',
-                flash: 0,
-                numbers: phoneNumber,
-            },
-            headers: { 'cache-control': 'no-cache' }
-        });
-        console.log(`📲 SMS sent to ${phoneNumber}:`, response.data);
-    } catch (error: any) {
-        console.error('❌ Fast2SMS error:', error?.response?.data || error.message);
-        // Don't throw — OTP is still saved in DB, manual lookup possible in dev
-    }
-};
+// SMS functionality removed in favor of Google OAuth
 
 // --- HELPERS ---
 const getUserId = (req: Request) => {
@@ -237,52 +224,67 @@ const sortAnswersThreaded = (question: any) => {
 
 // --- ROUTES ---
 
-app.post('/api/auth/send-otp', authLimiter, validate(sendOtpSchema), async (req: Request, res: Response): Promise<void> => {
+app.post('/api/auth/google', authLimiter, validate(googleAuthSchema), async (req: Request, res: Response): Promise<void> => {
     try {
-        const { phoneNumber } = req.body;
-        if (!phoneNumber) { res.status(400).json({ error: "Phone required" }); return; }
-        const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        let user = await User.findOne({ phoneNumber });
-        let isNewUser = true;
-        let existingUsername = "";
-        if (user) {
-            if (user.username) { isNewUser = false; existingUsername = user.username; }
-        } else { user = new User({ phoneNumber }); }
-        user.otp = otp; user.otpExpires = new Date(Date.now() + 5 * 60000);
-        await user.save();
-        await sendSmsOtp(phoneNumber, otp);
-        res.json({ message: "OTP sent", isNewUser, username: existingUsername });
-    } catch (e) { res.status(500).json({ error: "Error sending OTP" }); }
-});
-
-app.post('/api/auth/verify-otp', authLimiter, validate(verifyOtpSchema), async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { phoneNumber, otp, username, location } = req.body;
-        const user = await User.findOne({ phoneNumber });
-        // Security: Validate OTP and check expiry
-        if (!user || user.otp !== otp) { res.status(400).json({ error: "Invalid OTP" }); return; }
-        if (!user.otpExpires || user.otpExpires < new Date()) {
-            res.status(400).json({ error: "OTP has expired. Please request a new one." });
+        const { credential, username, location } = req.body;
+        
+        // Verify google token
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        
+        if (!payload || !payload.email) {
+            res.status(400).json({ error: "Invalid Google token" });
             return;
         }
+
+        const email = payload.email;
+        const name = payload.name;
+        const picture = payload.picture;
+
+        let user = await User.findOne({ email });
+        let isNewUser = true;
+        let existingUsername = "";
+
+        if (user) {
+            if (user.username) {
+                isNewUser = false;
+                existingUsername = user.username;
+            }
+            // Update profile optionally
+            if (!user.picture && picture) user.picture = picture;
+            if (!user.name && name) user.name = name;
+        } else {
+            user = new User({ email, name, picture });
+        }
+
+        // Apply provided details during signup
         if (username) user.username = username;
         if (location) user.location = location;
-        user.otp = undefined; user.otpExpires = undefined; user.isVerified = true;
+        
+        user.isVerified = true;
         await user.save();
+
         const token = jwt.sign(
-            { id: user._id, phone: user.phoneNumber },
+            { id: user._id, email: user.email },
             JWT_SECRET,
-            { expiresIn: '30d' } // Token expires in 30 days
+            { expiresIn: '30d' }
         );
-        res.json({ token, userId: user._id });
-    } catch (e) { res.status(500).json({ error: "Error verifying OTP" }); }
+        
+        res.json({ token, userId: user._id, isNewUser, username: existingUsername });
+    } catch (e: any) {
+        console.error("Google auth error:", e);
+        res.status(500).json({ error: "Authentication failed" });
+    }
 });
 
 app.get('/api/users/me', async (req: Request, res: Response): Promise<void> => {
     const userId = getUserId(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const user = await User.findById(userId);
-    res.json({ _id: user?._id, username: user?.username, phoneNumber: user?.phoneNumber, location: user?.location, blockedUsers: user?.blockedUsers, settings: user?.settings });
+    res.json({ _id: user?._id, username: user?.username, email: user?.email, name: user?.name, picture: user?.picture, location: user?.location, blockedUsers: user?.blockedUsers, settings: user?.settings });
 });
 
 app.get('/api/users/activity', async (req: Request, res: Response): Promise<void> => {
@@ -346,39 +348,18 @@ app.put('/api/users/settings', validate(updateSettingsSchema), async (req: Reque
 });
 
 app.post('/api/users/delete-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
-    const userId = getUserId(req);
-    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-    const user = await User.findById(userId);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
-
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    user.otp = otp;
-    user.otpExpires = new Date(Date.now() + 5 * 60000);
-    await user.save();
-
-    await sendSmsOtp(user.phoneNumber, otp);
-    res.json({ message: "OTP sent" });
+    res.json({ message: "Not required for Google sign-in" });
 });
 
 app.delete('/api/users/me', authLimiter, validate(deleteUserSchema), async (req: Request, res: Response): Promise<void> => {
     const userId = getUserId(req);
-    const { otp } = req.body;
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const user = await User.findById(userId);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    // Security: Validate OTP and check expiry
-    if (!otp || user.otp !== otp) {
-        res.status(400).json({ error: "Invalid OTP" });
-        return;
-    }
-
-    if (!user.otpExpires || user.otpExpires < new Date()) {
-        res.status(400).json({ error: "OTP has expired. Please request a new one." });
-        return;
-    }
+    // No OTP validation needed when signed in with Google
+    // Removing old OTP logic
 
     // Clean up ALL data
     await Question.deleteMany({ askerId: userId });
@@ -491,10 +472,10 @@ app.delete('/api/admin/wipe-all', requireAdmin, async (req: Request, res: Respon
 app.post('/api/admin/seed', requireAdmin, async (req: Request, res: Response) => {
     try {
         const users = [
-            { username: "hsr_user", phoneNumber: "9999900001", location: "HSR", settings: { isPrivate: false, notifications: true } },
-            { username: "krmgla_user1", phoneNumber: "9999900002", location: "Koramangala", settings: { isPrivate: false, notifications: true } },
-            { username: "krmgla_user2", phoneNumber: "9999900003", location: "Koramangala", settings: { isPrivate: false, notifications: true } },
-            { username: "both_user", phoneNumber: "9999900004", location: "Both", settings: { isPrivate: false, notifications: true } }
+            { username: "hsr_user", email: "hsr@test.com", location: "HSR", settings: { isPrivate: false, notifications: true } },
+            { username: "krmgla_user1", email: "koram1@test.com", location: "Koramangala", settings: { isPrivate: false, notifications: true } },
+            { username: "krmgla_user2", email: "koram2@test.com", location: "Koramangala", settings: { isPrivate: false, notifications: true } },
+            { username: "both_user", email: "both@test.com", location: "Both", settings: { isPrivate: false, notifications: true } }
         ];
 
         for (const u of users) {
@@ -602,8 +583,32 @@ app.post('/api/questions', validate(postQuestionSchema), async (req: Request, re
         }
 
         res.status(201).json(newQuestion);
+
+        // --- NEW: Send 3 status notifications to the asker themselves ---
+        // These inform them of the question flow: searching → shared → waiting
+        if (userId) {
+            const statusNotifications = [
+                { title: "Searching...", text: "Finding people nearby who can help…", delayMs: 5000 },
+                { title: "Shared!", text: "Your question has been shared locally", delayMs: 15000 },
+                { title: "Waiting", text: "Waiting for replies - we'll notify you", delayMs: 30000 }
+            ];
+
+            for (const sn of statusNotifications) {
+                setTimeout(async () => {
+                    try {
+                        // Send as Push Notification only, do not save to Notification DB
+                        await sendPush(userId, { title: sn.title, body: sn.text });
+                    } catch (e) {
+                        console.error('Status notification error:', e);
+                    }
+                }, sn.delayMs);
+            }
+        }
+        // --- END NEW ---
+
     } catch (error) { res.status(500).json({ error: 'Server Error' }); }
 });
+
 
 // --- UPDATED NEARBY ROUTE (With Threaded Sorting & Block Filtering) ---
 app.get('/api/questions/nearby', async (req: Request, res: Response) => {

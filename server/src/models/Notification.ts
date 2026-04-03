@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface INotification extends Document {
   recipientId: string; // Who gets the notification
   senderId: string;    // Who triggered it
-  type: 'REPLY' | 'HELPFUL' | 'CHAT_REQUEST' | 'NEW_QUESTION' | 'THANK_YOU';
+  type: 'REPLY' | 'HELPFUL' | 'CHAT_REQUEST' | 'NEW_QUESTION' | 'THANK_YOU' | 'QUESTION_SHARED' | 'WAITING_REPLIES';
   questionId?: string; // Link to context
   answerId?: string;   // Link to specific answer (for THANK_YOU)
   text: string;        // Notification message

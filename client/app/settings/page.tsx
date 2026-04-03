@@ -33,35 +33,50 @@ export default function SettingsPage() {
         const token = localStorage.getItem('token');
         if (!token) { router.push('/login'); return; }
 
-        axios.get(`${API_BASE}/users/settings`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(res => {
-                setSettings(res.data.settings);
-                setUsername(res.data.username || "");
-                setLocation(res.data.location);
-                setBlockedCount(res.data.blockedCount);
-                setIsLoading(false);
-
-                // Ensure sync state matches backend on load
-                const isDark = res.data.settings.darkMode;
-                if (isDark) {
-                    document.documentElement.classList.add('dark');
-                    document.documentElement.classList.remove('light');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                    document.documentElement.classList.add('light');
-                }
+        const loadSettings = () => {
+            axios.get(`${API_BASE}/users/settings`, {
+                headers: { Authorization: `Bearer ${token}` }
             })
-            .catch((err) => {
-                if (axios.isAxiosError(err) && err.response?.status === 401) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('darkMode');
-                    router.push('/login');
-                }
-                setIsLoading(false);
-            });
-    }, []); // Empty dependency to run once
+                .then(res => {
+                    setSettings(res.data.settings);
+                    setUsername(res.data.username || "");
+                    setLocation(res.data.location);
+                    setBlockedCount(res.data.blockedCount);
+                    setIsLoading(false);
+
+                    // Ensure sync state matches backend on load
+                    const isDark = res.data.settings.darkMode;
+                    if (isDark) {
+                        document.documentElement.classList.add('dark');
+                        document.documentElement.classList.remove('light');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        document.documentElement.classList.add('light');
+                    }
+                })
+                .catch((err) => {
+                    if (axios.isAxiosError(err) && err.response?.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('darkMode');
+                        router.push('/login');
+                    }
+                    setIsLoading(false);
+                });
+        };
+
+        loadSettings();
+
+        // Refresh blocked count when block/unblock happens in another page
+        const handleBlockChange = () => {
+            const t = localStorage.getItem('token');
+            if (!t) return;
+            axios.get(`${API_BASE}/users/settings`, { headers: { Authorization: `Bearer ${t}` } })
+                .then(res => setBlockedCount(res.data.blockedCount))
+                .catch(() => {});
+        };
+        window.addEventListener('user-blocked-changed', handleBlockChange);
+        return () => window.removeEventListener('user-blocked-changed', handleBlockChange);
+    }, [router]); // router is stable
 
     // --- UPDATE HANDLER ---
     const updateSetting = async (key: string, value: boolean | string) => {

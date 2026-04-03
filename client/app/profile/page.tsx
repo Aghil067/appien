@@ -31,7 +31,8 @@ interface MyAnswer {
 interface UserProfile {
     _id: string;
     username: string;
-    phoneNumber: string;
+    email: string;
+    picture?: string;
     location?: string;
 }
 
@@ -123,16 +124,20 @@ export default function ProfilePage() {
                             {/* Profile Image */}
                             <div className="relative z-10 pt-10 text-center -mt-20"> {/* Adjusted margin to pull up */}
                                 <div className="mt-10 w-24 h-24 bg-white dark:bg-slate-800 p-1.5 rounded-full mx-auto shadow-md shadow-orange-200/50 dark:shadow-none">
-                                    <div className="w-full h-full bg-gradient-to-br from-slate-50 to-orange-50 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 text-3xl font-bold border border-slate-100 dark:border-slate-700">
-                                        {profile.username ? profile.username[0].toUpperCase() : <User />}
-                                    </div>
+                                    {profile.picture ? (
+                                        <img src={profile.picture} alt="Profile" className="w-full h-full rounded-full object-cover border border-slate-100 dark:border-slate-700" />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-slate-50 to-orange-50 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 text-3xl font-bold border border-slate-100 dark:border-slate-700">
+                                            {profile.username ? profile.username[0].toUpperCase() : <User />}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="text-center px-4 sm:px-5 md:px-6 pb-5 sm:pb-6 pt-3">
                                 <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white mb-0.5">{profile.username}</h2>
                                 <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-medium mb-1">
-                                    <Phone size={12} className="text-orange-400" /> {profile.phoneNumber}
+                                    <span className="text-orange-400 font-semibold">@</span> {profile.email}
                                 </div>
                                 <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wide mb-6 mt-2 border border-slate-200 dark:border-slate-700">
                                     <MapPin size={10} /> {profile.location || "Location not set"}

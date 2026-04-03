@@ -123,12 +123,21 @@ export default function InboxPage() {
         const handleClick = () => setContextMenu(null);
         document.addEventListener('click', handleClick);
 
+        // Listen for block/unblock events - refresh the chat list
+        const handleBlockChange = () => {
+            const t = localStorage.getItem('token');
+            if (t) fetchChats(t);
+        };
+        window.addEventListener('user-blocked-changed', handleBlockChange);
+
         return () => {
             if (selectedChat?._id) socket.off(chatEvent);
             socket.off('chat_updated_global');
             document.removeEventListener('click', handleClick);
+            window.removeEventListener('user-blocked-changed', handleBlockChange);
         };
     }, [selectedChat?._id, router]);
+
 
     useEffect(() => {
         scrollToBottom();
@@ -231,7 +240,7 @@ export default function InboxPage() {
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-50/50 via-orange-100/25 to-transparent dark:from-orange-950/25 dark:via-orange-900/15 dark:to-transparent"></div>
 
             {/* Main Layout Container - Removed Grid/Box Wrapper styling */}
-            <div className="flex-1 flex relative z-10 overflow-hidden px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
+            <div className="flex-1 flex relative z-10 overflow-hidden px-0 sm:px-0 md:px-6 pb-0 sm:pb-0 md:pb-6">
 
                 {/* --- LEFT SIDEBAR (INBOX LIST) --- */}
                 {/* Desktop: Transparent/Clean. Mobile: Full screen white. */}
@@ -527,6 +536,9 @@ export default function InboxPage() {
                                                 if (selectedChat._id === contextMenu.chatId) setSelectedChat(null);
                                                 setContextMenu(null);
                                                 toast.success("User blocked");
+                                                // Fire event so blocked users page and other components update
+                                                window.dispatchEvent(new CustomEvent('user-blocked-changed'));
+                                                window.dispatchEvent(new Event('user-updated'));
                                             } catch (e) { toast.error("Block failed"); }
                                         },
                                         true
