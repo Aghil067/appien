@@ -547,36 +547,36 @@ export default function Home() {
             // Convert to blob
             canvas.toBlob(async (blob) => {
                 if (blob) {
-                    // Try COPY TO CLIPBOARD first
-                    // Try COPY TO CLIPBOARD first
+                    // Try to copy Link to clipboard first (Reliable)
                     try {
-                        const textData = new Blob(['Check this out on Appien! https://appien.com'], { type: 'text/plain' });
-                        await navigator.clipboard.write([
-                            new ClipboardItem({ 
-                                'image/png': blob,
-                                'text/plain': textData
-                            })
-                        ]);
-                        toast.success("Image & Link Copied!");
-                    } catch (clipboardErr) {
-                        console.warn("Clipboard write failed, trying Share Sheet...", clipboardErr);
+                        await navigator.clipboard.writeText('Check this out on Appien! https://appien.com');
+                        toast.success("Link copied! Opening share...");
+                    } catch (e) {
+                        console.warn("Text copy failed");
+                    }
 
-                        // Fallback to Share Sheet
-                        const file = new File([blob], 'appien-share.png', { type: 'image/png' });
-                        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                            try {
-                                await navigator.share({
-                                    files: [file],
-                                    title: 'Share from Appien',
-                                    text: 'Check this out on Appien! https://appien.com',
-                                    url: 'https://appien.com'
-                                });
-                            } catch (shareErr) {
-                                // User cancelled
-                            }
-                        } else {
-                            toast.error("Could not copy. Browser restricted.");
+                    // Fallback to Share Sheet for Image + Link
+                    const file = new File([blob], 'appien-share.png', { type: 'image/png' });
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: 'Share from Appien',
+                                text: 'Check this out on Appien! https://appien.com',
+                                url: 'https://appien.com'
+                            });
+                        } catch (shareErr) {
+                            // User cancelled
                         }
+                    } else {
+                        // If share sheet is unavailable, download the image as fallback
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'appien-share.png';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.info("Image downloaded. Paste following link!");
                     }
                 }
             }, 'image/png');
