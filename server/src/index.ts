@@ -273,7 +273,7 @@ app.post('/api/auth/google', authLimiter, validate(googleAuthSchema), async (req
             { expiresIn: '30d' }
         );
         
-        res.json({ token, userId: user._id, isNewUser, username: existingUsername });
+        res.json({ token, user });
     } catch (e: any) {
         console.error("Google auth error:", e);
         res.status(500).json({ error: "Authentication failed" });
