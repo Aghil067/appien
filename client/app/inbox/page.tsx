@@ -3,9 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import {
-    MessageSquare, Check, X, Send, Lock, User, ChevronLeft,
-    MoreVertical, Reply, Smile, Paperclip, Trash2, ArrowLeft,
-    Clock, RefreshCw, UserX
+    MessageSquare, X, Send, User, ChevronLeft,
+    MoreVertical, Trash2,
+    RefreshCw, UserX
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import getSocket from '@/lib/socket';
@@ -46,8 +46,10 @@ export default function InboxPage() {
     const [msgText, setMsgText] = useState('');
     const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
-
     const [showChatMenu, setShowChatMenu] = useState(false);
+
+    const menuRef = useRef<HTMLDivElement>(null);
+    const menuBtnRef = useRef<HTMLButtonElement>(null);
 
     // Confirmation Modal State
     const [confirmState, setConfirmState] = useState<{
@@ -66,9 +68,27 @@ export default function InboxPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    // --- HELPER FUNCTIONS ---
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleOutsideClick = (e: MouseEvent) => {
+            if (
+                menuRef.current && !menuRef.current.contains(e.target as Node) &&
+                menuBtnRef.current && !menuBtnRef.current.contains(e.target as Node)
+            ) {
+                setShowChatMenu(false);
+            }
+        };
+        if (showChatMenu) {
+            document.addEventListener('mousedown', handleOutsideClick);
+            document.addEventListener('touchstart', handleOutsideClick as any);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+            document.removeEventListener('touchstart', handleOutsideClick as any);
+        };
+    }, [showChatMenu]);
+
     const scrollToBottom = () => {
-        // Instant scroll for better feel
         setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
@@ -88,7 +108,6 @@ export default function InboxPage() {
             .finally(() => setTimeout(() => setIsRefreshing(false), 500));
     };
 
-    // --- EFFECTS ---
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) { router.push('/login'); return; }
@@ -120,10 +139,6 @@ export default function InboxPage() {
             setChats(prev => prev.map(c => c._id === updatedChat._id ? updatedChat : c));
         });
 
-        const handleClick = () => setShowChatMenu(false);
-        document.addEventListener('click', handleClick);
-
-        // Listen for block/unblock events - refresh the chat list
         const handleBlockChange = () => {
             const t = localStorage.getItem('token');
             if (t) fetchChats(t);
@@ -133,17 +148,14 @@ export default function InboxPage() {
         return () => {
             if (selectedChat?._id) socket.off(chatEvent);
             socket.off('chat_updated_global');
-            document.removeEventListener('click', handleClick);
             window.removeEventListener('user-blocked-changed', handleBlockChange);
         };
     }, [selectedChat?._id, router]);
-
 
     useEffect(() => {
         scrollToBottom();
     }, [selectedChat?.messages]);
 
-    // --- HANDLERS ---
     const handleAccept = async (chatId: string, e: React.MouseEvent) => {
         e.stopPropagation();
         const token = localStorage.getItem('token');
@@ -191,14 +203,12 @@ export default function InboxPage() {
                 const token = localStorage.getItem('token');
                 setChats(prev => prev.filter(c => c._id !== chatId));
                 if (selectedChat?._id === chatId) setSelectedChat(null);
-
                 try {
                     await axios.delete(`${API_BASE}/chat/${chatId}`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     toast.success("Conversation deleted");
                 } catch (e) {
-                    console.error("Delete failed", e);
                     toast.error("Delete failed");
                 }
             },
@@ -233,12 +243,11 @@ export default function InboxPage() {
         if (token) fetchChats(token);
     };
 
-    // --- RENDER HELPERS ---
     const requests = chats.filter(c => c.status === 'pending' && c.responderId === currentUserId);
     const active = chats.filter(c => c.status === 'accepted' || (c.status === 'pending' && c.askerId === currentUserId));
 
     return (
-        <div className="h-[100dvh] pt-[72px] sm:pt-[80px] bg-[#f8fafc] dark:bg-slate-950 font-sans relative overflow-hidden flex flex-col transition-colors duration-300">
+        <div className="h-[100dvh] pt-[64px] sm:pt-[72px] bg-[#f8fafc] dark:bg-slate-950 font-sans relative overflow-hidden flex flex-col transition-colors duration-300">
 
             <ConfirmModal
                 isOpen={confirmState.isOpen}
@@ -249,61 +258,58 @@ export default function InboxPage() {
                 isDestructive={confirmState.isDestructive}
             />
 
-            {/* Background Decoration */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-50/50 via-orange-100/25 to-transparent dark:from-orange-950/25 dark:via-orange-900/15 dark:to-transparent"></div>
+            {/* Background */}
+            <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-orange-50/40 via-transparent to-transparent dark:from-orange-950/20 dark:to-transparent" />
 
-            {/* Main Layout Container - Removed Grid/Box Wrapper styling */}
-            <div className="flex-1 flex relative z-10 overflow-hidden px-0 sm:px-0 md:px-6 pb-0 sm:pb-0 md:pb-6">
+            {/* Main Layout */}
+            <div className="flex-1 flex relative z-10 overflow-hidden md:px-6 md:pb-6 md:gap-4">
 
-                {/* --- LEFT SIDEBAR (INBOX LIST) --- */}
-                {/* Desktop: Transparent/Clean. Mobile: Full screen white. */}
+                {/* LEFT SIDEBAR */}
                 <div className={`
-                    flex-col w-full md:w-[320px] lg:w-[380px] z-20 
-                    transition-all duration-300 absolute md:relative inset-0 md:inset-auto md:flex md:mr-4
-                    bg-white md:bg-transparent dark:bg-slate-950 md:dark:bg-transparent
-                    ${selectedChat ? '-translate-x-full md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto' : 'translate-x-0 opacity-100'}
+                    flex flex-col w-full md:w-[340px] lg:w-[380px] flex-shrink-0
+                    bg-white dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent
+                    absolute md:relative inset-0 md:inset-auto z-20
+                    transition-transform duration-300 ease-in-out
+                    ${selectedChat ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
                 `}>
-                    {/* Header */}
-                    <div className="px-4 sm:px-5 md:px-6 py-4 sm:py-5 md:py-6 flex items-center justify-between sticky top-0 z-10 md:bg-transparent">
+                    {/* Sidebar Header */}
+                    <div className="px-4 py-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 md:border-0 md:pt-4">
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">Messages</h1>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Messages</h1>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {active.length} {active.length === 1 ? 'conversation' : 'conversations'}
                             </p>
                         </div>
                         <button
                             onClick={refreshInbox}
-                            className={`p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-400 hover:text-[#ffb732] dark:hover:text-[#ffb732] transition-all shadow-sm touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${isRefreshing ? 'animate-spin text-[#ffb732]' : ''}`}
+                            className={`p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-[#ffb732] transition-all touch-manipulation ${isRefreshing ? 'animate-spin text-[#ffb732]' : ''}`}
                         >
-                            <RefreshCw size={20} strokeWidth={2.5} />
+                            <RefreshCw size={18} strokeWidth={2.5} />
                         </button>
                     </div>
 
                     {/* Scrollable List */}
-                    <div className="flex-1 overflow-y-auto px-3 sm:px-4 space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent pb-20 md:pb-0">
+                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 pb-24 md:pb-4">
 
-                        {/* Message Requests */}
+                        {/* Requests */}
                         {requests.length > 0 && (
-                            <div>
-                                <div className="flex items-center justify-between px-2 mb-2">
-                                    <h3 className="text-[11px] font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wide">Requests</h3>
-                                    <span className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">{requests.length}</span>
-                                </div>
-                                <div className="space-y-2.5">
+                            <div className="mb-4">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">Requests · {requests.length}</p>
+                                <div className="space-y-2">
                                     {requests.map(c => (
-                                        <div key={c._id} className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-900/10 dark:to-slate-900 border border-orange-100 dark:border-orange-900/30 p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all group">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-200/50 dark:shadow-orange-900/30 group-hover:scale-105 transition-transform">
-                                                    <User size={20} strokeWidth={2.5} />
+                                        <div key={c._id} className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-900/10 dark:to-slate-900 border border-orange-100 dark:border-orange-900/30 p-4 rounded-2xl shadow-sm">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#ffb732] to-amber-500 flex items-center justify-center text-black shadow-md flex-shrink-0">
+                                                    <User size={18} strokeWidth={2.5} />
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-semibold text-slate-800 dark:text-white text-base">{c.otherUserName || "Anonymous"}</h4>
-                                                    <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold">wants to connect with you</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-semibold text-slate-800 dark:text-white text-sm truncate">{c.otherUserName || "Anonymous"}</h4>
+                                                    <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">wants to connect</p>
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={(e) => handleAccept(c._id, e)}
-                                                className="w-full bg-[#ffb732] dark:bg-[#ffb732] text-black py-2.5 rounded-xl text-xs font-semibold hover:bg-[#e6a42d] dark:hover:bg-[#e6a42d] transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95"
+                                                className="w-full bg-[#ffb732] text-black py-2.5 rounded-xl text-sm font-bold hover:bg-[#e6a42d] transition-all active:scale-95 touch-manipulation"
                                             >
                                                 Accept Request
                                             </button>
@@ -313,135 +319,127 @@ export default function InboxPage() {
                             </div>
                         )}
 
-                        {/* Messages List */}
-                        <div>
-                            <div className="flex items-center justify-between px-2 mb-2 mt-4">
-                                <h3 className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Messages</h3>
+                        {/* Messages */}
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">Chats</p>
+                        {active.length === 0 ? (
+                            <div className="text-center py-16 px-6 opacity-60">
+                                <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-300 dark:text-slate-600 shadow-sm">
+                                    <MessageSquare size={22} />
+                                </div>
+                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No messages yet</p>
                             </div>
-
-                            <div className="space-y-1.5">
-                                {active.length === 0 ? (
-                                    <div className="text-center py-20 px-6 opacity-60">
-                                        <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300 dark:text-slate-600 shadow-sm">
-                                            <MessageSquare size={24} />
-                                        </div>
-                                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No messages yet</p>
+                        ) : active.map(c => {
+                            const isSelected = selectedChat?._id === c._id;
+                            const lastMsg = c.messages[c.messages.length - 1];
+                            const isMe = lastMsg?.senderId === currentUserId;
+                            return (
+                                <div
+                                    key={c._id}
+                                    onClick={() => setSelectedChat(c)}
+                                    className={`flex items-center gap-3 p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border touch-manipulation
+                                        ${isSelected
+                                            ? 'bg-white dark:bg-slate-900 border-orange-200/60 dark:border-orange-900/40 shadow-md'
+                                            : 'bg-transparent border-transparent hover:bg-white/80 dark:hover:bg-slate-900/60 hover:border-slate-100 dark:hover:border-slate-800 active:bg-white dark:active:bg-slate-900'
+                                        }`}
+                                >
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all
+                                        ${isSelected
+                                            ? 'bg-gradient-to-br from-[#ffb732] to-amber-500 text-black shadow-md'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                                        }`}>
+                                        <User size={20} strokeWidth={2.5} />
                                     </div>
-                                ) : active.map(c => {
-                                    const isSelected = selectedChat?._id === c._id;
-                                    const lastMsg = c.messages[c.messages.length - 1];
-                                    const isMe = lastMsg?.senderId === currentUserId;
-
-                                    return (
-                                        <div
-                                            key={c._id}
-                                            onClick={() => setSelectedChat(c)}
-                                            onContextMenu={(e) => e.preventDefault()}
-                                            className={`
-                                            group flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-300 border relative overflow-hidden
-                                            ${isSelected
-                                                    ? 'bg-white dark:bg-slate-900 border-orange-200/60 dark:border-orange-900/40 shadow-lg shadow-orange-100/50 dark:shadow-orange-950/50 scale-[1.01]'
-                                                    : 'bg-transparent border-transparent hover:bg-white/70 dark:hover:bg-slate-900/70 hover:border-slate-100 dark:hover:border-slate-800/50 hover:shadow-md'}
-                                        `}
-                                        >
-                                            <div className="relative shrink-0">
-                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-base font-semibold transition-all ${isSelected ? 'bg-gradient-to-br from-[#ffb732] to-amber-500 text-black shadow-lg shadow-orange-300/60 dark:shadow-orange-900/60 scale-105' : 'bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shadow-sm group-hover:scale-105 group-hover:border-orange-200 dark:group-hover:border-orange-900/50'}`}>
-                                                    <User size={22} strokeWidth={2.5} />
-                                                </div>
-                                                {c.status === 'pending' && (
-                                                    <span className="absolute top-0 right-0 w-3 h-3 bg-orange-400 border-2 border-white dark:border-slate-950 rounded-full"></span>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex justify-between items-baseline mb-1.5">
-                                                    <h4 className={`text-base font-semibold truncate ${isSelected ? 'text-orange-900 dark:text-orange-300' : 'text-slate-900 dark:text-white group-hover:text-orange-700 dark:group-hover:text-orange-400'}`}>{c.otherUserName || "Anonymous"}</h4>
-                                                    {lastMsg && (
-                                                        <span className={`text-[10px] font-medium ${isSelected ? 'text-orange-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                                                            {formatDistanceToNow(new Date(lastMsg.createdAt), { addSuffix: false }).replace('about ', '')}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className={`text-sm truncate ${isSelected ? 'text-orange-700/80 dark:text-orange-300/80 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                    {c.status === 'pending'
-                                                        ? <span className="text-amber-500 font-semibold">Request pending...</span>
-                                                        : (
-                                                            <span className="flex items-center gap-1.5">
-                                                                {isMe && <span className="text-[10px] font-semibold px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">YOU</span>}
-                                                                {lastMsg?.text || 'Start chatting'}
-                                                            </span>
-                                                        )
-                                                    }
-                                                </p>
-                                            </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-0.5">
+                                            <h4 className={`text-sm font-semibold truncate ${isSelected ? 'text-orange-800 dark:text-orange-300' : 'text-slate-900 dark:text-white'}`}>
+                                                {c.otherUserName || "Anonymous"}
+                                            </h4>
+                                            {lastMsg && (
+                                                <span className="text-[10px] text-slate-400 ml-2 flex-shrink-0">
+                                                    {formatDistanceToNow(new Date(lastMsg.createdAt), { addSuffix: false }).replace('about ', '').replace('less than a minute', 'now')}
+                                                </span>
+                                            )}
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                            {c.status === 'pending'
+                                                ? <span className="text-amber-500 font-semibold">Request pending...</span>
+                                                : <>{isMe && <span className="font-semibold">You: </span>}{lastMsg?.text || 'Start chatting'}</>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* --- RIGHT CHAT AREA (THE BOX) --- */}
+                {/* RIGHT CHAT AREA */}
                 <div className={`
-                flex-1 flex flex-col relative z-20 
-                bg-white dark:bg-slate-900 
-                transition-all duration-300
-                absolute md:relative inset-0 md:inset-auto
-                md:rounded-3xl md:shadow-xl md:border md:border-slate-100 md:dark:border-slate-800
-                overflow-hidden
-                ${selectedChat ? 'translate-x-0 opacity-100' : 'translate-x-full md:translate-x-0 opacity-0 md:opacity-100 md:translate-x-0'}
-            `}>
+                    flex-1 flex flex-col
+                    bg-white dark:bg-slate-900
+                    absolute md:relative inset-0 md:inset-auto z-20
+                    md:rounded-2xl md:shadow-lg md:border md:border-slate-100 md:dark:border-slate-800
+                    overflow-hidden transition-transform duration-300 ease-in-out
+                    ${selectedChat ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+                `}>
                     {selectedChat ? (
                         <>
                             {/* Chat Header */}
-                            <div className="px-6 py-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-                                <div className="flex items-center gap-3">
+                            <div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0 shadow-sm">
+                                <div className="flex items-center gap-3 min-w-0">
                                     <button
-                                        onClick={() => setSelectedChat(null)}
-                                        className="md:hidden p-2 -ml-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+                                        onClick={() => { setSelectedChat(null); setShowChatMenu(false); }}
+                                        className="md:hidden p-2 -ml-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors touch-manipulation flex-shrink-0"
                                     >
                                         <ChevronLeft size={22} />
                                     </button>
-
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#ffb732] to-amber-500 flex items-center justify-center text-black shadow-lg shadow-orange-300/50 dark:shadow-orange-900/50">
-                                            <User size={22} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{selectedChat.otherUserName || "Anonymous"}</h2>
-                                        </div>
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ffb732] to-amber-500 flex items-center justify-center text-black flex-shrink-0 shadow-sm">
+                                        <User size={18} strokeWidth={2.5} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h2 className="text-base font-bold text-slate-900 dark:text-white truncate">{selectedChat.otherUserName || "Anonymous"}</h2>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500">tap to view profile</p>
                                     </div>
                                 </div>
 
-                                <div className="relative">
+                                {/* THREE DOTS MENU - Properly implemented */}
+                                <div className="relative flex-shrink-0">
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowChatMenu(prev => !prev);
-                                        }}
-                                        className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors touch-manipulation"
+                                        ref={menuBtnRef}
+                                        onClick={() => setShowChatMenu(prev => !prev)}
+                                        className={`p-2.5 rounded-xl transition-colors touch-manipulation flex-shrink-0
+                                            ${showChatMenu
+                                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                                                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                            }`}
+                                        aria-label="Chat options"
                                     >
                                         <MoreVertical size={20} />
                                     </button>
 
-                                    {/* Inline Dropdown Menu */}
+                                    {/* Dropdown Menu */}
                                     {showChatMenu && (
                                         <div
-                                            className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl py-1.5 z-[9999] animate-in zoom-in-95 slide-in-from-top-2 duration-150"
-                                            onClick={(e) => e.stopPropagation()}
+                                            ref={menuRef}
+                                            className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-2xl overflow-hidden z-50"
                                         >
-                                            <div className="px-3 py-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700 mb-1">Options</div>
+                                            <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-700">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chat Options</p>
+                                            </div>
                                             <button
                                                 onClick={() => handleDeleteChat(selectedChat._id)}
-                                                className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 font-medium transition-colors touch-manipulation"
+                                                className="w-full text-left px-4 py-3.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 flex items-center gap-3 font-semibold transition-colors touch-manipulation"
                                             >
-                                                <Trash2 size={16} /> Delete Conversation
+                                                <Trash2 size={16} />
+                                                Delete Conversation
                                             </button>
+                                            <div className="h-px bg-slate-100 dark:bg-slate-700" />
                                             <button
                                                 onClick={() => handleBlockUser(selectedChat._id)}
-                                                className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 font-medium border-t border-slate-100 dark:border-slate-700 transition-colors touch-manipulation"
+                                                className="w-full text-left px-4 py-3.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 flex items-center gap-3 font-semibold transition-colors touch-manipulation"
                                             >
-                                                <UserX size={16} /> Block User
+                                                <UserX size={16} />
+                                                Block User
                                             </button>
                                         </div>
                                     )}
@@ -449,106 +447,90 @@ export default function InboxPage() {
                             </div>
 
                             {/* Messages Area */}
-                            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 scroll-smooth scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent bg-gradient-to-b from-slate-50/50 to-white/50 dark:from-slate-950/50 dark:to-slate-900/50">
-
+                            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
                                 {selectedChat.messages.map((m, i) => {
                                     const isMe = m.senderId === currentUserId;
                                     const isSystem = m.senderId === 'system';
 
                                     if (isSystem) return (
-                                        <div key={i} className="flex justify-center my-4">
-                                            <span className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-[10px] font-semibold px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                                        <div key={i} className="flex justify-center my-2">
+                                            <span className="bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-[10px] font-semibold px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
                                                 {m.text}
                                             </span>
                                         </div>
                                     );
 
                                     return (
-                                        <div key={i} className={`flex w-full group ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-3 fade-in duration-400`}>
-                                            <div className={`max-w-[85%] md:max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                        <div key={i} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[80%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                                                 <div className={`
-                                                relative px-5 py-3.5 text-[15px] leading-relaxed z-10 break-words shadow-md hover:shadow-lg transition-shadow
-                                                ${isMe
-                                                        ? 'bg-gradient-to-br from-[#ffb732] to-amber-500 text-black rounded-[20px] rounded-br-md'
-                                                        : 'bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-[20px] rounded-bl-md'}
-                                            `}>
-                                                    {/* Reply Context */}
+                                                    px-4 py-3 text-[14px] leading-relaxed break-words shadow-sm
+                                                    ${isMe
+                                                        ? 'bg-gradient-to-br from-[#ffb732] to-amber-500 text-black rounded-[18px] rounded-br-sm'
+                                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-[18px] rounded-bl-sm'
+                                                    }`}
+                                                >
                                                     {m.replyContext && (
-                                                        <div className={`
-                                                        mb-2 text-xs p-2 rounded-xl border-l-[3px] flex flex-col bg-opacity-20
-                                                        ${isMe ? 'bg-black/10 border-slate-700 text-slate-900' : 'bg-slate-100 dark:bg-slate-900 border-orange-400 text-slate-600 dark:text-slate-300'}
-                                                    `}>
-                                                            <span className="font-semibold text-[9px] uppercase opacity-80 mb-0.5">{m.replyContext.senderName}</span>
-                                                            <span className="truncate italic opacity-90 font-serif">{m.replyContext.text}</span>
+                                                        <div className={`mb-2 text-xs p-2 rounded-xl border-l-[3px] ${isMe ? 'bg-black/10 border-slate-700 text-slate-900' : 'bg-slate-50 dark:bg-slate-900 border-orange-400 text-slate-600 dark:text-slate-300'}`}>
+                                                            <span className="font-bold text-[9px] uppercase opacity-70 block mb-0.5">{m.replyContext.senderName}</span>
+                                                            <span className="truncate italic opacity-80 block">{m.replyContext.text}</span>
                                                         </div>
                                                     )}
-
-                                                    <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                                                    <p className="whitespace-pre-wrap">{m.text}</p>
                                                 </div>
-                                                <span className={`text-[10px] font-semibold mt-2 px-1 opacity-60 ${isMe ? 'text-right' : ''} text-slate-500 dark:text-slate-400`}>
+                                                <span className="text-[10px] mt-1 px-1 text-slate-400 dark:text-slate-500">
                                                     {formatDistanceToNow(new Date(m.createdAt), { addSuffix: false }).replace('less than a minute', 'Just now')}
                                                 </span>
                                             </div>
                                         </div>
                                     );
                                 })}
-                                <div ref={messagesEndRef} className="h-4" />
+                                <div ref={messagesEndRef} className="h-2" />
                             </div>
 
                             {/* Input Area */}
-                            <div className="p-4 pb-24 md:pb-4 bg-white dark:bg-slate-900 z-20 border-t border-slate-50 dark:border-slate-800">
-                                <div className="max-w-4xl mx-auto w-full">
-                                    {replyingTo && (
-                                        <div className="flex items-center justify-between ml-4 mb-2 animate-in slide-in-from-bottom-2">
-                                            <div className="flex items-center gap-2 relative pl-3 border-l-2 border-orange-500">
-                                                <div>
-                                                    <p className="text-[10px] font-semibold text-orange-500 uppercase">Replying to {replyingTo.senderName}</p>
-                                                    <p className="text-xs text-slate-400 truncate max-w-[200px]">{replyingTo.text}</p>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => setReplyingTo(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 mr-2">
-                                                <X size={14} />
-                                            </button>
+                            <div className="p-3 pb-[max(12px,env(safe-area-inset-bottom))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+                                {replyingTo && (
+                                    <div className="flex items-center justify-between mb-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl border-l-2 border-orange-400 mx-1">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-orange-500 uppercase">Replying to {replyingTo.senderName}</p>
+                                            <p className="text-xs text-slate-400 truncate max-w-[220px]">{replyingTo.text}</p>
                                         </div>
-                                    )}
-
-                                    <div className="flex items-end gap-3 p-2 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-[24px] focus-within:ring-2 focus-within:ring-[#ffb732]/30 focus-within:border-[#ffb732] dark:focus-within:border-[#ffb732]/60 transition-all shadow-md focus-within:shadow-lg">
-                                        <textarea
-                                            ref={inputRef}
-                                            value={msgText}
-                                            onChange={(e) => { setMsgText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px`; }}
-                                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                                            placeholder="Type your message..."
-                                            rows={1}
-                                            className="flex-1 bg-transparent max-h-32 min-h-[46px] py-3 px-5 text-[15px] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none font-medium"
-                                        />
-                                        <button
-                                            onClick={handleSend}
-                                            disabled={!msgText.trim()}
-                                            className="p-3 bg-gradient-to-br from-[#ffb732] to-amber-500 text-black rounded-[18px] hover:from-[#e6a42d] hover:to-amber-600 disabled:opacity-40 disabled:hover:from-[#ffb732] disabled:hover:to-amber-500 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 disabled:scale-100"
-                                        >
-                                            <Send size={20} strokeWidth={2.5} className={msgText.trim() ? "translate-x-0.5" : ""} />
+                                        <button onClick={() => setReplyingTo(null)} className="p-1 text-slate-400 hover:text-slate-600 touch-manipulation">
+                                            <X size={14} />
                                         </button>
                                     </div>
+                                )}
+                                <div className="flex items-end gap-2 p-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus-within:border-[#ffb732] focus-within:ring-2 focus-within:ring-[#ffb732]/20 transition-all">
+                                    <textarea
+                                        ref={inputRef}
+                                        value={msgText}
+                                        onChange={(e) => { setMsgText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                                        placeholder="Type a message..."
+                                        rows={1}
+                                        className="flex-1 bg-transparent max-h-[120px] min-h-[40px] py-2 px-3 text-[15px] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none"
+                                    />
+                                    <button
+                                        onClick={handleSend}
+                                        disabled={!msgText.trim()}
+                                        className="p-2.5 bg-gradient-to-br from-[#ffb732] to-amber-500 text-black rounded-xl hover:from-[#e6a42d] hover:to-amber-600 disabled:opacity-40 transition-all shadow-sm hover:shadow-md active:scale-95 disabled:scale-100 touch-manipulation flex-shrink-0"
+                                    >
+                                        <Send size={18} strokeWidth={2.5} />
+                                    </button>
                                 </div>
                             </div>
                         </>
                     ) : (
-                        <div className="hidden md:flex flex-col items-center justify-center h-full text-center p-12 bg-gradient-to-br from-slate-50/80 to-white/80 dark:from-slate-950/80 dark:to-slate-900/80">
-                            <div className="w-32 h-32 bg-gradient-to-br from-orange-50 to-white dark:from-slate-800 dark:to-slate-700 rounded-[32px] shadow-lg border border-slate-100 dark:border-slate-700 flex items-center justify-center mb-8 relative overflow-hidden group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#ffb732]/10 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <MessageSquare size={48} className="text-orange-300 dark:text-slate-600 relative z-10" strokeWidth={1.5} />
+                        <div className="hidden md:flex flex-col items-center justify-center h-full text-center p-12 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+                            <div className="w-24 h-24 bg-gradient-to-br from-orange-50 to-white dark:from-slate-800 dark:to-slate-700 rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 flex items-center justify-center mb-6">
+                                <MessageSquare size={40} className="text-orange-300 dark:text-slate-600" strokeWidth={1.5} />
                             </div>
-                            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">No Chat Selected</h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-base max-w-sm leading-relaxed">Choose a conversation from your list to start messaging.</p>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Chat Selected</h2>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs">Choose a conversation from your list to start messaging.</p>
                         </div>
                     )}
                 </div>
-
-                {/* Menu backdrop for closing */}
-                {showChatMenu && (
-                    <div className="fixed inset-0 z-[9998]" onClick={() => setShowChatMenu(false)} />
-                )}
             </div>
         </div>
     );
