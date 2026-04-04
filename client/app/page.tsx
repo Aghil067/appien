@@ -547,36 +547,34 @@ export default function Home() {
             // Convert to blob
             canvas.toBlob(async (blob) => {
                 if (blob) {
-                    // Try to copy Link to clipboard first (Reliable)
-                    try {
-                        await navigator.clipboard.writeText('Check this out on Appien! https://appien.com');
-                        toast.success("Link copied! Opening share...");
-                    } catch (e) {
-                        console.warn("Text copy failed");
-                    }
-
-                    // Fallback to Share Sheet for Image + Link
+                    const shareText = 'Check this out on Appien! https://appien.com';
                     const file = new File([blob], 'appien-share.png', { type: 'image/png' });
+
+                    // check if sharing is supported
                     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                         try {
                             await navigator.share({
                                 files: [file],
                                 title: 'Share from Appien',
-                                text: 'Check this out on Appien! https://appien.com',
-                                url: 'https://appien.com'
+                                text: shareText,
+                                url: 'https://appien.com' // Duplicate for safety
                             });
                         } catch (shareErr) {
-                            // User cancelled
+                            console.error("Share failed", shareErr);
                         }
                     } else {
-                        // If share sheet is unavailable, download the image as fallback
+                        // FALLBACK: Copy text and download image
+                        try {
+                            await navigator.clipboard.writeText(shareText);
+                            toast.info("Link copied! Downloading image...");
+                        } catch (e) {}
+
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = 'appien-share.png';
                         a.click();
                         URL.revokeObjectURL(url);
-                        toast.info("Image downloaded. Paste following link!");
                     }
                 }
             }, 'image/png');
