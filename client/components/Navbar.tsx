@@ -25,6 +25,7 @@ interface Notification {
     text: string;
     isRead: boolean;
     createdAt: string;
+    questionId?: string;
 }
 
 const NavItem = ({ href, icon: Icon, label, isActive, mobile }: NavItemProps) => {
@@ -216,7 +217,11 @@ export default function Navbar() {
                                             </div>
                                         ) : (
                                             notifications.map((n, i) => (
-                                                <div key={i} className="p-4 border-b border-gray-50 dark:border-slate-800 hover:bg-orange-50/30 dark:hover:bg-orange-900/10 transition-colors flex gap-3 cursor-pointer group">
+                                                <div key={i} onClick={() => {
+                                                    setShowDropdown(false);
+                                                    if (n.type === 'CHAT_REQUEST') window.location.href = '/inbox';
+                                                    else if (n.questionId) window.location.href = '/';
+                                                }} className="p-4 border-b border-gray-50 dark:border-slate-800 hover:bg-orange-50/30 dark:hover:bg-orange-900/10 transition-colors flex gap-3 cursor-pointer group">
                                                     <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 ${
                                                         n.type === 'THANK_YOU' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' :
                                                         n.type === 'HELPFUL' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' :

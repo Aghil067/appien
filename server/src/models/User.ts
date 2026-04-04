@@ -40,7 +40,7 @@ const UserSchema: Schema = new Schema({
   settings: {
     notifications: { type: Boolean, default: false },
     darkMode: { type: Boolean, default: false },
-    isPrivate: { type: Boolean, default: false }
+    isPrivate: { type: Boolean, default: true }
   },
   blockedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   // --- TRUSTED BADGE SYSTEM ---

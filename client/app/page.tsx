@@ -433,8 +433,17 @@ export default function Home() {
         isDestructive?: boolean;
     }>({ isOpen: false, title: "", message: "", onConfirm: () => { }, isDestructive: false });
 
+    const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+
     const openConfirm = (title: string, message: string, onConfirm: () => void, isDestructive = false) => {
         setConfirmState({ isOpen: true, title, message, onConfirm, isDestructive });
+    };
+
+    const checkAndPromptNotifications = () => {
+        if (!("Notification" in window)) return;
+        if (Notification.permission !== "granted") {
+            setShowNotificationPrompt(true);
+        }
     };
 
     const router = useRouter();
@@ -552,7 +561,8 @@ export default function Home() {
                                 await navigator.share({
                                     files: [file],
                                     title: 'Share from Appien',
-                                    text: 'Check this out on Appien!'
+                                    text: 'Check this out on Appien!',
+                                    url: 'https://appien.com'
                                 });
                             } catch (shareErr) {
                                 // User cancelled
@@ -717,6 +727,7 @@ export default function Home() {
             setSuggestions([]);
 
             toast.success("Question posted!");
+            checkAndPromptNotifications();
 
         } catch (error: any) {
             if (axios.isAxiosError(error) && error.response?.status === 400) {
@@ -757,6 +768,8 @@ export default function Home() {
                     }
                 } catch (e) { console.error("Sim fetch fail", e); }
             }
+            
+            checkAndPromptNotifications();
 
         } catch (err) { toast.error("Failed to reply"); }
     };
@@ -776,6 +789,36 @@ export default function Home() {
                     message={confirmState.message}
                     isDestructive={confirmState.isDestructive}
                 />
+
+                {showNotificationPrompt && (
+                    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 relative">
+                            <h3 className="text-lg font-bold mb-2 text-slate-900 dark:text-white flex items-center gap-2">
+                                <AlertCircle size={20} className="text-[#ffb732]" />
+                                Enable Notifications
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                                Get push notifications when someone replies or answers. <br /><br />
+                                <b>Chrome users:</b> If disabled, click the <Lock size={12} className="inline mx-1" /> icon in your address bar and set Notifications to <b>Allow</b>.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button onClick={() => setShowNotificationPrompt(false)} className="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Later</button>
+                                <button onClick={() => {
+                                    setShowNotificationPrompt(false);
+                                    if ("Notification" in window) {
+                                        Notification.requestPermission().then(permission => {
+                                            if (permission === 'denied') {
+                                                toast.warn("Could not enable notification. Please check browser blocking.");
+                                            } else if (permission === 'granted') {
+                                                toast.success("Notifications allowed!");
+                                            }
+                                        });
+                                    }
+                                }} className="px-4 py-2 text-sm font-bold bg-[#ffb732] text-black rounded-lg hover:bg-[#e6a42d] transition-colors shadow-sm">Allow Notifications</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Background Gradient Mesh */}
                 <div className="fixed top-0 left-0 w-full h-[500px] bg-gradient-to-b from-orange-50/70 to-transparent dark:from-orange-950/25 pointer-events-none z-0"></div>
