@@ -165,12 +165,12 @@ export default function ProfilePage() {
                         </button>
                     </div>
 
-                    {/* RIGHT: Activity Feed (Static Height with Scroll) */}
+                    {/* RIGHT: Activity Feed (Static Height with Scroll on Desktop, Auto on Mobile) */}
                     <div className="lg:col-span-8 animate-in slide-in-from-right-4 duration-700 delay-100">
-                        <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl rounded-[32px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-white dark:border-slate-800 flex flex-col h-[calc(100dvh-200px)]">
+                        <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl rounded-[32px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none border border-white dark:border-slate-800 flex flex-col lg:h-[calc(100dvh-200px)] min-h-[500px]">
 
                             {/* Tabs Header */}
-                            <div className="p-1 md:p-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1 md:gap-2 bg-slate-50/80 dark:bg-slate-800/80 mx-2 my-2 md:m-4 rounded-xl md:rounded-2xl shrink-0 sticky top-0 z-20 backdrop-blur-md">
+                            <div className="p-1 md:p-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1 md:gap-2 bg-slate-50/80 dark:bg-slate-800/80 mx-2 my-2 md:m-4 rounded-xl md:rounded-2xl shrink-0 sticky top-[80px] lg:top-0 z-20 backdrop-blur-md">
                                 <button
                                     onClick={() => setActiveTab('asked')}
                                     className={`flex-1 py-4 text-center text-sm font-semibold transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap ${activeTab === 'asked'
@@ -190,7 +190,7 @@ export default function ProfilePage() {
                             </div>
 
                             {/* Scrollable Content Area */}
-                            <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-4 pb-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                            <div className="flex-1 lg:overflow-y-auto p-4 sm:p-6 pt-2 space-y-4 pb-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent">
 
                                 {/* VIEW: QUESTIONS ASKED */}
                                 {activeTab === 'asked' && (
@@ -211,7 +211,7 @@ export default function ProfilePage() {
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                                        <div className="h-full flex flex-col items-center justify-center text-center opacity-60 min-h-[200px]">
                                             <MessageSquare size={48} className="text-slate-300 dark:text-slate-700 mb-4" />
                                             <p className="text-slate-500 dark:text-slate-400 font-medium">No questions asked yet.</p>
                                             <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Start engaging with your community!</p>
@@ -252,7 +252,7 @@ export default function ProfilePage() {
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                                        <div className="h-full flex flex-col items-center justify-center text-center opacity-60 min-h-[200px]">
                                             <MessageCircle size={48} className="text-slate-300 dark:text-slate-700 mb-4" />
                                             <p className="text-slate-500 dark:text-slate-400 font-medium">No answers given yet.</p>
                                             <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Help others in your community!</p>

@@ -96,9 +96,9 @@ export default function LoginPage() {
             </header>
 
             {/* --- MAIN CONTENT --- */}
-            <div className="flex-1 flex flex-col justify-center items-center w-full z-10 px-4 md:px-8 lg:px-12 pt-20 md:pt-24 pb-6 md:pb-8">
+            <div className="flex-1 flex flex-col justify-center items-center w-full z-10 px-4 md:px-8 lg:px-12 pt-24 md:pt-[104px] pb-8 md:pb-12 min-h-screen">
 
-                <div className="w-full max-w-[1100px] flex flex-col lg:flex-row bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl lg:rounded-[32px] rounded-[24px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] dark:shadow-none border border-white/60 dark:border-slate-800 overflow-hidden min-h-[auto] lg:min-h-[640px] relative transition-all duration-500">
+                <div className="w-full max-w-[1100px] flex flex-col lg:flex-row bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl lg:rounded-[32px] rounded-[24px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] dark:shadow-none border border-white/60 dark:border-slate-800 overflow-hidden min-h-[auto] lg:min-h-[640px] relative transition-all duration-500 my-auto">
 
                     {/* LEFT PANEL: Visuals (Desktop Only) */}
                     <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-slate-900 to-slate-800 relative flex-col justify-between p-12 text-white overflow-hidden">

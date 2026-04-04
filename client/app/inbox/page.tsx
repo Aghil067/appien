@@ -456,7 +456,7 @@ export default function InboxPage() {
                             </div>
 
                             {/* Input Area */}
-                            <div className="p-4 bg-white dark:bg-slate-900 z-20 border-t border-slate-50 dark:border-slate-800">
+                            <div className="p-4 pb-24 md:pb-4 bg-white dark:bg-slate-900 z-20 border-t border-slate-50 dark:border-slate-800">
                                 <div className="max-w-4xl mx-auto w-full">
                                     {replyingTo && (
                                         <div className="flex items-center justify-between ml-4 mb-2 animate-in slide-in-from-bottom-2">
