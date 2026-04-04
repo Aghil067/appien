@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
               headers: [
                   {
                       key: "Cross-Origin-Opener-Policy",
-                      value: "unsafe-none", // Changed from same-origin-allow-popups for Google OAuth iframe compatibility
+                      value: "same-origin-allow-popups",
                   },
               ],
           },
