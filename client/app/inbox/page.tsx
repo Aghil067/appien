@@ -401,10 +401,18 @@ export default function InboxPage() {
                                 </div>
 
                                 <button
-                                    onClick={(e) => handleContextMenu(e, selectedChat._id)}
-                                    className="p-2 text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setContextMenu({ 
+                                            x: rect.right - 192, // w-48 is 192px
+                                            y: rect.bottom + 10, 
+                                            chatId: selectedChat._id 
+                                        });
+                                    }}
+                                    className="p-2 text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors active:bg-slate-100 dark:active:bg-slate-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                 >
-                                    <MoreVertical size={18} />
+                                    <MoreVertical size={20} />
                                 </button>
                             </div>
 

@@ -123,7 +123,7 @@ const QuestionCard = ({
     const [profileMenuId, setProfileMenuId] = useState<string | null>(null);
 
     return (
-        <div className={`group bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[18px] sm:rounded-[20px] md:rounded-[24px] border transition-all duration-300 mb-4 sm:mb-5 ${isReadOnly ? 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/30 opacity-80' : 'border-white/60 dark:border-slate-800/60 shadow-sm hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] hover:border-orange-200/50 dark:hover:border-orange-900/50'}`}>
+        <div id={`question-${q._id}`} className={`group bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[18px] sm:rounded-[20px] md:rounded-[24px] border transition-all duration-300 mb-4 sm:mb-5 ${isReadOnly ? 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/30 opacity-80' : 'border-white/60 dark:border-slate-800/60 shadow-sm hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] hover:border-orange-200/50 dark:hover:border-orange-900/50'}`}>
 
             {/* Header */}
             <div onClick={() => { setExpandedId(expandedId === q._id ? null : q._id); setProfileMenuId(null); }} className="p-4 sm:p-5 md:p-6 cursor-pointer relative overflow-hidden touch-manipulation">
@@ -548,9 +548,16 @@ export default function Home() {
             canvas.toBlob(async (blob) => {
                 if (blob) {
                     // Try COPY TO CLIPBOARD first
+                    // Try COPY TO CLIPBOARD first
                     try {
-                        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                        toast.success("Message Copied!");
+                        const textData = new Blob(['Check this out on Appien! https://appien.com'], { type: 'text/plain' });
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 
+                                'image/png': blob,
+                                'text/plain': textData
+                            })
+                        ]);
+                        toast.success("Image & Link Copied!");
                     } catch (clipboardErr) {
                         console.warn("Clipboard write failed, trying Share Sheet...", clipboardErr);
 
@@ -561,14 +568,14 @@ export default function Home() {
                                 await navigator.share({
                                     files: [file],
                                     title: 'Share from Appien',
-                                    text: 'Check this out on Appien!',
+                                    text: 'Check this out on Appien! https://appien.com',
                                     url: 'https://appien.com'
                                 });
                             } catch (shareErr) {
                                 // User cancelled
                             }
                         } else {
-                            toast.error("Could not copy image. Browser restricted.");
+                            toast.error("Could not copy. Browser restricted.");
                         }
                     }
                 }
@@ -633,6 +640,33 @@ export default function Home() {
             console.error(e);
         } finally { setIsLoading(false); setIsLoadingMore(false); }
     };
+
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#question-')) {
+                const id = hash.replace('#question-', '');
+                setExpandedId(id);
+                setTimeout(() => {
+                    const el = document.getElementById(`question-${id}`);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.classList.add('ring-2', 'ring-[#ffb732]', 'ring-offset-2', 'dark:ring-offset-slate-950');
+                        setTimeout(() => {
+                            el.classList.remove('ring-2', 'ring-[#ffb732]', 'ring-offset-2', 'dark:ring-offset-slate-950');
+                        }, 3000);
+                    }
+                }, 500);
+            }
+        };
+
+        if (!isLoading && questions.length > 0) {
+            handleHashChange();
+        }
+
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, [isLoading, questions]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
