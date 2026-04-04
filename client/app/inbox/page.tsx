@@ -47,7 +47,7 @@ export default function InboxPage() {
     const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, chatId: string } | null>(null);
+    const [showChatMenu, setShowChatMenu] = useState(false);
 
     // Confirmation Modal State
     const [confirmState, setConfirmState] = useState<{
@@ -120,7 +120,7 @@ export default function InboxPage() {
             setChats(prev => prev.map(c => c._id === updatedChat._id ? updatedChat : c));
         });
 
-        const handleClick = () => setContextMenu(null);
+        const handleClick = () => setShowChatMenu(false);
         document.addEventListener('click', handleClick);
 
         // Listen for block/unblock events - refresh the chat list
@@ -182,22 +182,13 @@ export default function InboxPage() {
         inputRef.current?.focus();
     };
 
-    const handleContextMenu = (e: React.MouseEvent, chatId: string) => {
-        e.preventDefault();
-        setContextMenu({ x: e.clientX, y: e.clientY, chatId });
-    };
-
-    const handleDeleteChat = async () => {
-        if (!contextMenu) return;
-
+    const handleDeleteChat = async (chatId: string) => {
+        setShowChatMenu(false);
         openConfirm(
             "Delete Conversation",
             "Are you sure you want to delete this conversation? This action cannot be undone.",
             async () => {
                 const token = localStorage.getItem('token');
-
-                // Optimistic logic
-                const chatId = contextMenu.chatId;
                 setChats(prev => prev.filter(c => c._id !== chatId));
                 if (selectedChat?._id === chatId) setSelectedChat(null);
 
@@ -210,6 +201,28 @@ export default function InboxPage() {
                     console.error("Delete failed", e);
                     toast.error("Delete failed");
                 }
+            },
+            true
+        );
+    };
+
+    const handleBlockUser = (chatId: string) => {
+        if (!selectedChat) return;
+        setShowChatMenu(false);
+        const otherId = selectedChat.askerId === currentUserId ? selectedChat.responderId : selectedChat.askerId;
+        openConfirm(
+            "Block User",
+            "Block this user? They won't be able to message you.",
+            async () => {
+                const token = localStorage.getItem('token');
+                try {
+                    await axios.post(`${API_BASE}/users/block`, { targetId: otherId }, { headers: { Authorization: `Bearer ${token}` } });
+                    setChats(prev => prev.filter(c => c._id !== chatId));
+                    if (selectedChat._id === chatId) setSelectedChat(null);
+                    toast.success("User blocked");
+                    window.dispatchEvent(new CustomEvent('user-blocked-changed'));
+                    window.dispatchEvent(new Event('user-updated'));
+                } catch (e) { toast.error("Block failed"); }
             },
             true
         );
@@ -323,7 +336,7 @@ export default function InboxPage() {
                                         <div
                                             key={c._id}
                                             onClick={() => setSelectedChat(c)}
-                                            onContextMenu={(e) => handleContextMenu(e, c._id)}
+                                            onContextMenu={(e) => e.preventDefault()}
                                             className={`
                                             group flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-300 border relative overflow-hidden
                                             ${isSelected
@@ -400,20 +413,39 @@ export default function InboxPage() {
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        setContextMenu({ 
-                                            x: rect.right - 192,
-                                            y: rect.bottom + 10, 
-                                            chatId: selectedChat._id 
-                                        });
-                                    }}
-                                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors relative z-[50] touch-manipulation"
-                                >
-                                    <MoreVertical size={20} />
-                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowChatMenu(prev => !prev);
+                                        }}
+                                        className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors touch-manipulation"
+                                    >
+                                        <MoreVertical size={20} />
+                                    </button>
+
+                                    {/* Inline Dropdown Menu */}
+                                    {showChatMenu && (
+                                        <div
+                                            className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-xl py-1.5 z-[9999] animate-in zoom-in-95 slide-in-from-top-2 duration-150"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <div className="px-3 py-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700 mb-1">Options</div>
+                                            <button
+                                                onClick={() => handleDeleteChat(selectedChat._id)}
+                                                className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 font-medium transition-colors touch-manipulation"
+                                            >
+                                                <Trash2 size={16} /> Delete Conversation
+                                            </button>
+                                            <button
+                                                onClick={() => handleBlockUser(selectedChat._id)}
+                                                className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 font-medium border-t border-slate-100 dark:border-slate-700 transition-colors touch-manipulation"
+                                            >
+                                                <UserX size={16} /> Block User
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Messages Area */}
@@ -513,54 +545,9 @@ export default function InboxPage() {
                     )}
                 </div>
 
-                {/* Context Menu */}
-                {contextMenu && (
-                    <>
-                        <div className="fixed inset-0 z-[100]" onClick={() => setContextMenu(null)}></div>
-                        <div
-                            className="fixed z-[9999] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-2xl rounded-xl py-1 w-48 animate-in zoom-in-95 duration-100"
-                            style={{ 
-                                top: contextMenu.y, 
-                                left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 200 : contextMenu.x) 
-                            }}
-                        >
-                            <div className="px-3 py-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-50 dark:border-slate-700 mb-1">Menu</div>
-                            <button
-                                onClick={handleDeleteChat}
-                                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 font-medium"
-                            >
-                                <Trash2 size={14} /> Delete Conversation
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    if (!contextMenu || !selectedChat) return;
-                                    const otherId = selectedChat.askerId === currentUserId ? selectedChat.responderId : selectedChat.askerId;
-                                    openConfirm(
-                                        "Block User",
-                                        "Block this user? They won't be able to message you anyway.",
-                                        async () => {
-                                            const token = localStorage.getItem('token');
-                                            try {
-                                                await axios.post(`${API_BASE}/users/block`, { targetId: otherId }, { headers: { Authorization: `Bearer ${token}` } });
-                                                // Optimistically remove chat
-                                                setChats(prev => prev.filter(c => c._id !== contextMenu.chatId));
-                                                if (selectedChat._id === contextMenu.chatId) setSelectedChat(null);
-                                                setContextMenu(null);
-                                                toast.success("User blocked");
-                                                // Fire event so blocked users page and other components update
-                                                window.dispatchEvent(new CustomEvent('user-blocked-changed'));
-                                                window.dispatchEvent(new Event('user-updated'));
-                                            } catch (e) { toast.error("Block failed"); }
-                                        },
-                                        true
-                                    );
-                                }}
-                                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 font-medium border-t border-slate-50 dark:border-slate-700"
-                            >
-                                <UserX size={14} /> Block User
-                            </button>
-                        </div>
-                    </>
+                {/* Menu backdrop for closing */}
+                {showChatMenu && (
+                    <div className="fixed inset-0 z-[9998]" onClick={() => setShowChatMenu(false)} />
                 )}
             </div>
         </div>

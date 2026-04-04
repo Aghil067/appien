@@ -547,7 +547,7 @@ export default function Home() {
             // Convert to blob
             canvas.toBlob(async (blob) => {
                 if (blob) {
-                    const shareText = 'Check this out on Appien! https://appien.com';
+                    const shareText = 'Check this out on Appien! https://appien.in';
                     const file = new File([blob], 'appien-share.png', { type: 'image/png' });
 
                     // check if sharing is supported
@@ -557,7 +557,7 @@ export default function Home() {
                                 files: [file],
                                 title: 'Share from Appien',
                                 text: shareText,
-                                url: 'https://appien.com' // Duplicate for safety
+                                url: 'https://appien.in' // Duplicate for safety
                             });
                         } catch (shareErr) {
                             console.error("Share failed", shareErr);
