@@ -18,9 +18,7 @@ const inter = Inter({
 });
 import API_BASE from '@/lib/api';
 
-if (typeof window !== 'undefined') {
-    console.log("🚀 [Appien] API Configured:", API_BASE);
-}
+
 
 const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_KEY as string;
 
@@ -98,7 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         if ('serviceWorker' in navigator && typeof window !== 'undefined') {
             navigator.serviceWorker.register('/sw.js')
                 .then(async (reg) => {
-                    console.log("SW Registered");
+
                     try {
                         const token = localStorage.getItem('token');
                         if (!token) return;
@@ -119,10 +117,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             });
                         }
                     } catch (e) {
-                         console.error("Auto subscribe failed", e);
+                         // silent fail
                     }
                 })
-                .catch(e => console.error("SW Fail", e));
+                .catch(e => { /* silent fail */ });
         }
     }, []);
 

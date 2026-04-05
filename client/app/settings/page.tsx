@@ -7,6 +7,8 @@ import {
     Bell, Moon, Lock, Shield, MapPin, LogOut, Trash2, ChevronRight, Loader2, User
 } from 'lucide-react';
 
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+
 import API_BASE from '@/lib/api';
 
 interface UserSettings {
@@ -188,24 +190,14 @@ export default function SettingsPage() {
         router.push('/login');
     };
 
-    const handleDeleteAccount = async () => {
-        if (!confirm("Are you sure? This will permanently delete your account and all data.")) return;
+    const handleDeleteAccountWithGoogle = async (credentialResponse: any) => {
+        if (!confirm("Are you sure? This will PERMANENTLY delete your account and all data. There is no undo.")) return;
 
         const token = localStorage.getItem('token');
         try {
-            // 1. Request OTP
-            await axios.post(`${API_BASE}/users/delete-otp`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            // 2. Prompt for OTP
-            const otp = prompt("An OTP has been sent to your registered number. Enter it to confirm deletion:");
-            if (!otp) return;
-
-            // 3. Verify & Delete
             await axios.delete(`${API_BASE}/users/me`, {
                 headers: { Authorization: `Bearer ${token}` },
-                data: { otp }
+                data: { googleCredential: credentialResponse.credential }
             });
 
             localStorage.removeItem('token');
@@ -224,6 +216,7 @@ export default function SettingsPage() {
     );
 
     return (
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
         <div className="min-h-screen bg-gray-50/30 dark:bg-slate-950 pt-20 sm:pt-24 pb-24 md:pb-8 px-3 sm:px-4 md:px-6 lg:px-8 transition-colors duration-200">
             <div className="max-w-2xl mx-auto w-full">
                 <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white tracking-tight mb-2">Settings</h1>
@@ -358,22 +351,32 @@ export default function SettingsPage() {
                         </button>
 
                         {/* Delete Account */}
-                        <button onClick={handleDeleteAccount} className="w-full p-4 flex items-center justify-between hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-left">
+                        <div className="w-full p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors group text-left">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-500 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/50 transition-colors flex-shrink-0">
                                     <Trash2 size={20} />
                                 </div>
                                 <div>
                                     <h4 className="font-semibold text-red-500 dark:text-red-400 text-sm">Delete Account</h4>
-                                    <p className="text-xs text-red-300 dark:text-red-400/70 mt-0.5">Permanently delete your data</p>
+                                    <p className="text-xs text-red-300 dark:text-red-400/70 mt-0.5 max-w-[200px]">Verify with Google to permanently delete</p>
                                 </div>
                             </div>
-                            <ChevronRight size={18} className="text-red-300 dark:text-red-400/70 flex-shrink-0" />
-                        </button>
+                            <div className="scale-90 origin-right">
+                                <GoogleLogin
+                                    onSuccess={handleDeleteAccountWithGoogle}
+                                    onError={() => toast.error("Google Verification Failed")}
+                                    useOneTap={false}
+                                    theme="outline"
+                                    type="standard"
+                                    shape="pill"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
             </div>
         </div>
+        </GoogleOAuthProvider>
     );
 }

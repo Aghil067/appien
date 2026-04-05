@@ -100,7 +100,6 @@ export default function Navbar() {
 
         // Join my private room
         socket.emit('join_user', userId);
-        console.log(`[Navbar] Joined user room: ${userId}`);
 
         // Listen for generic event sent to my room
         socket.on('notification', (newNotif: Notification) => {

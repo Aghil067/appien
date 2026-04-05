@@ -19,11 +19,11 @@ const getSocket = () => {
     });
 
     socket.on('connect', () => {
-        console.log('✅ Connected to Socket.IO');
+        // silent
     });
 
     socket.on('connect_error', (err: any) => {
-        console.error('❌ Socket.IO Connect Error:', err.message);
+        // silent
     });
 
     return socket;
