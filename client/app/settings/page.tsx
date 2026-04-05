@@ -146,7 +146,7 @@ export default function SettingsPage() {
     };
 
     const handleUsernameEdit = async () => {
-        const newUsername = prompt("Enter your new username:", username);
+        const newUsername = prompt("Enter your new username (min 3 characters):", username);
         if (!newUsername || newUsername === username) return;
 
         const trimmed = newUsername.trim();

@@ -241,7 +241,12 @@ export default function LoginPage() {
                                             <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#ffb732]/10 rounded-full blur-[40px] pointer-events-none"></div>
 
                                             <div className="space-y-2 relative z-10">
-                                                <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">Unique Username</label>
+                                                <div className="flex justify-between items-center pl-1 pr-1">
+                                                    <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Unique Username</label>
+                                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${username.length > 0 && username.length < 3 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                        Min 3 chars
+                                                    </span>
+                                                </div>
                                                 <div className="relative group/input">
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-semibold group-focus-within/input:text-[#ffb732] transition-colors">@</span>
                                                     <input
