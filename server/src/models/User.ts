@@ -38,7 +38,7 @@ const UserSchema: Schema = new Schema({
   isVerified: { type: Boolean, default: false },
   location: { type: String, default: 'Unknown Location' },
   settings: {
-    notifications: { type: Boolean, default: false },
+    notifications: { type: Boolean, default: true },
     darkMode: { type: Boolean, default: false },
     isPrivate: { type: Boolean, default: true }
   },

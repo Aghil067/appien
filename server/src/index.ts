@@ -450,6 +450,18 @@ app.post('/api/notifications/unsubscribe', async (req: Request, res: Response): 
     res.json({ message: "Unsubscribed" });
 });
 
+app.post('/api/notifications/test', async (req: Request, res: Response): Promise<void> => {
+    const userId = getUserId(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    
+    await sendPush(userId, {
+        title: "Test Notification",
+        body: "Push notifications are working perfectly!"
+    });
+    
+    res.json({ message: "Test notification sent" });
+});
+
 
 
 app.get('/api/notifications', async (req: Request, res: Response) => {
