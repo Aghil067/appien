@@ -504,7 +504,7 @@ export default function InboxPage() {
                             </div>
 
                             {/* Input Area */}
-                            <div className="p-3 pb-[max(12px,env(safe-area-inset-bottom))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+                            <div className="p-3 pb-24 md:pb-[max(12px,env(safe-area-inset-bottom))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
                                 {replyingTo && (
                                     <div className="flex items-center justify-between mb-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl border-l-2 border-orange-400 mx-1">
                                         <div>
