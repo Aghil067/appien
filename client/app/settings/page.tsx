@@ -118,62 +118,6 @@ export default function SettingsPage() {
             // Notify other components (Navbar) about the update
             window.dispatchEvent(new Event('user-updated'));
 
-            // 4. Side Effects (Notifications)
-            if (key === 'notifications') {
-                const isEnabled = value as boolean;
-                if ('serviceWorker' in navigator && isEnabled) {
-                    const reg = await navigator.serviceWorker.ready;
-                    try {
-                        const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
-
-                        // Check if VAPID key is configured
-                        if (!PUBLIC_VAPID_KEY) {
-                            console.error('NEXT_PUBLIC_VAPID_KEY is not configured');
-                            alert('Push notifications are not configured. Please contact support.');
-                            setSettings(prev => ({ ...prev, notifications: false }));
-                            return;
-                        }
-
-                        // Helper to convert key
-                        const urlBase64ToUint8Array = (base64String: string) => {
-                            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-                            const rawData = window.atob(base64);
-                            const outputArray = new Uint8Array(rawData.length);
-                            for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-                            return outputArray;
-                        };
-
-                        let sub = await reg.pushManager.getSubscription();
-                        if (!sub) {
-                            sub = await reg.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-                            });
-                        }
-
-                        await axios.post(`${API_BASE}/notifications/subscribe`, sub, {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
-                        alert("Notifications Enabled!");
-
-                    } catch (err) {
-                        console.error("Push Error", err);
-                        alert("Could not enable notifications. Please check browser blocking.");
-                        // Revert setting if failed
-                        setSettings(prev => ({ ...prev, notifications: false }));
-                    }
-                } else if (!isEnabled) {
-                    // Unsubscribe
-                    const reg = await navigator.serviceWorker.ready;
-                    const sub = await reg.pushManager.getSubscription();
-                    if (sub) await sub.unsubscribe();
-                    await axios.post(`${API_BASE}/notifications/unsubscribe`, {}, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                }
-            }
-
         } catch (error: any) {
             console.error("Failed to save setting:", error);
 
@@ -289,29 +233,6 @@ export default function SettingsPage() {
                 <div className="mb-5 sm:mb-6">
                     <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-3 ml-1 sm:ml-2 tracking-wider">Preferences</h3>
                     <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden transition-colors duration-200">
-
-                        {/* Notifications Toggle */}
-                        <div className="p-4 sm:p-5 flex items-center justify-between border-b border-gray-50 dark:border-slate-800 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors touch-manipulation">
-                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-[#ffb732] dark:text-[#ffb732] flex-shrink-0">
-                                    <Bell size={20} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h4>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Get notified about new answers</p>
-                                </div>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer ml-3 flex-shrink-0">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={settings.notifications}
-                                    onChange={(e) => updateSetting('notifications', e.target.checked)}
-                                />
-                                <div className="w-12 h-7 bg-gray-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-gray-300 dark:after:border-slate-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ffb732] dark:peer-checked:bg-[#ffb732]"></div>
-                            </label>
-                        </div>
-
 
                         {/* Dark Mode Toggle */}
                         <div className="p-4 sm:p-5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors touch-manipulation">

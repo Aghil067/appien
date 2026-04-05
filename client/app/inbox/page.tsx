@@ -90,7 +90,12 @@ export default function InboxPage() {
 
     const scrollToBottom = () => {
         setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            if (messagesEndRef.current) {
+                const container = messagesEndRef.current.parentElement;
+                if (container) {
+                    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+                }
+            }
         }, 100);
     };
 
@@ -398,7 +403,17 @@ export default function InboxPage() {
                                     </div>
                                     <div className="min-w-0">
                                         <h2 className="text-base font-bold text-slate-900 dark:text-white truncate">{selectedChat.otherUserName || "Anonymous"}</h2>
-                                        <p className="text-xs text-slate-400 dark:text-slate-500">tap to view profile</p>
+                                        {selectedChat.otherUserName && (
+                                            <p 
+                                                onClick={() => {
+                                                    const otherId = selectedChat.askerId === currentUserId ? selectedChat.responderId : selectedChat.askerId;
+                                                    router.push(`/profile/${otherId}`);
+                                                }}
+                                                className="text-xs text-slate-400 dark:text-slate-500 cursor-pointer hover:underline"
+                                            >
+                                                tap to view profile
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

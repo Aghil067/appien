@@ -1,7 +1,7 @@
 "use client";
 import './globals.css';
 import { Inter } from 'next/font/google';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useEffect } from 'react';
@@ -42,6 +42,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 
     const router = useRouter();
+    const pathname = usePathname();
 
     // --- 1. AXIOS INTERCEPTOR FOR AUTO-LOGOUT ---
     useEffect(() => {
@@ -96,7 +97,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     useEffect(() => {
         if ('serviceWorker' in navigator && typeof window !== 'undefined') {
             navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log("SW Registered"))
+                .then(async (reg) => {
+                    console.log("SW Registered");
+                    try {
+                        const token = localStorage.getItem('token');
+                        if (!token) return;
+                        
+                        const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
+                        if (!VAPID_KEY) return;
+
+                        let sub = await reg.pushManager.getSubscription();
+                        if (!sub && Notification.permission !== 'denied') {
+                            sub = await reg.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
+                            });
+                        }
+                        if (sub) {
+                            await axios.post(`${API_BASE}/notifications/subscribe`, sub, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                        }
+                    } catch (e) {
+                         console.error("Auto subscribe failed", e);
+                    }
+                })
                 .catch(e => console.error("SW Fail", e));
         }
     }, []);
@@ -128,7 +153,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <main className="flex-1 w-full flex flex-col">
                     {children}
                 </main>
-                <Footer />
+                {!pathname?.startsWith('/inbox') && <Footer />}
                 <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="colored" />
             </body>
         </html>

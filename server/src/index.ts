@@ -287,6 +287,40 @@ app.get('/api/users/me', async (req: Request, res: Response): Promise<void> => {
     res.json({ _id: user?._id, username: user?.username, email: user?.email, name: user?.name, picture: user?.picture, location: user?.location, blockedUsers: user?.blockedUsers, settings: user?.settings });
 });
 
+app.get('/api/users/public/:id', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const targetId = req.params.id;
+        const user = await User.findById(targetId).select('-pushSubscription');
+        if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+        if (user.settings?.isPrivate) {
+             res.status(403).json({ error: "This profile is private" });
+             return;
+        }
+
+        const asked = await Question.find({ askerId: targetId }).sort({ createdAt: -1 });
+        const answeredRaw = await Question.find({ "answers.responderId": targetId }).sort({ createdAt: -1 });
+        const answered = answeredRaw.map(q => {
+            const theirAnswer = q.answers.find((a: any) => a.responderId === targetId);
+            return { _id: q._id, questionText: q.text, answerText: theirAnswer?.text, createdAt: theirAnswer?.createdAt };
+        });
+
+        res.json({
+            profile: {
+                _id: user._id,
+                username: user.username,
+                picture: user.picture,
+                location: user.location,
+                isTrusted: user.isTrusted,
+                reputation: user.reputation,
+                createdAt: (user as any).createdAt
+            },
+            asked,
+            answered
+        });
+    } catch(e) { res.status(500).json({ error: "Error fetching profile" }); }
+});
+
 app.get('/api/users/activity', async (req: Request, res: Response): Promise<void> => {
     const userId = getUserId(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
