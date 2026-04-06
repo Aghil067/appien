@@ -439,7 +439,16 @@ export default function Home() {
         setConfirmState({ isOpen: true, title, message, onConfirm, isDestructive });
     };
 
-    const checkAndPromptNotifications = () => {
+    const maybePromptNotificationsAfterFirstQuestion = () => {
+        if (typeof window === "undefined") return;
+
+        const shouldPromptOnFirstQuestion =
+            sessionStorage.getItem('showNotificationPromptOnFirstQuestion') === 'true';
+
+        if (!shouldPromptOnFirstQuestion) return;
+
+        sessionStorage.removeItem('showNotificationPromptOnFirstQuestion');
+
         if (!("Notification" in window)) return;
         if (Notification.permission !== "granted") {
             setShowNotificationPrompt(true);
@@ -759,7 +768,7 @@ export default function Home() {
             setSuggestions([]);
 
             toast.success("Question posted!");
-            checkAndPromptNotifications();
+            maybePromptNotificationsAfterFirstQuestion();
 
         } catch (error: any) {
             if (axios.isAxiosError(error) && error.response?.status === 400) {
@@ -800,9 +809,6 @@ export default function Home() {
                     }
                 } catch (e) { console.error("Sim fetch fail", e); }
             }
-            
-            checkAndPromptNotifications();
-
         } catch (err) { toast.error("Failed to reply"); }
     };
 
@@ -827,12 +833,21 @@ export default function Home() {
                         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 relative">
                             <h3 className="text-lg font-bold mb-2 text-slate-900 dark:text-white flex items-center gap-2">
                                 <AlertCircle size={20} className="text-[#ffb732]" />
-                                Enable Notifications
+                                Turn On Notifications
                             </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                                Get push notifications when someone replies or answers. <br /><br />
-                                <b>Chrome users:</b> If disabled, click the <Lock size={12} className="inline mx-1" /> icon in your address bar and set Notifications to <b>Allow</b>.
-                            </p>
+                            <div className="text-sm text-slate-500 dark:text-slate-400 mb-5 space-y-3">
+                                <p className="font-semibold text-slate-700 dark:text-slate-200">
+                                    Get notified instantly when someone answers your question.
+                                </p>
+                                <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-3">
+                                    <p className="font-semibold text-slate-800 dark:text-slate-100 mb-1.5">
+                                        How to turn on notifications in Chrome:
+                                    </p>
+                                    <p>
+                                        Click the <Lock size={12} className="inline mx-1" /> icon in the address bar, then set <b>Notifications</b> to <b>Allow</b>.
+                                    </p>
+                                </div>
+                            </div>
                             <div className="flex justify-end gap-3">
                                 <button onClick={() => setShowNotificationPrompt(false)} className="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Later</button>
                                 <button onClick={() => {

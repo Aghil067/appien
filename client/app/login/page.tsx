@@ -25,6 +25,7 @@ export default function LoginPage() {
             });
             
             localStorage.setItem('token', res.data.token);
+            sessionStorage.setItem('showNotificationPromptOnFirstQuestion', 'true');
             window.dispatchEvent(new Event('user-updated'));
             
             if (res.data.isNewUser) {
@@ -51,6 +52,7 @@ export default function LoginPage() {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            sessionStorage.setItem('showNotificationPromptOnFirstQuestion', 'true');
             window.dispatchEvent(new Event('user-updated'));
             router.push('/');
         } catch (e) {
