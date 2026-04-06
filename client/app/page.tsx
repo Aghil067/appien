@@ -442,14 +442,13 @@ export default function Home() {
     const maybePromptNotificationsAfterQuestion = () => {
         if (typeof window === "undefined") return;
 
-        const alreadyPromptedThisSession =
-            sessionStorage.getItem('notificationPromptShownThisSession') === 'true';
-
-        if (alreadyPromptedThisSession) return;
+        // Only show if it's the first question after login this session
+        const isFirstQuestionAfterLogin = sessionStorage.getItem('showNotificationPromptOnFirstQuestion') === 'true';
+        if (!isFirstQuestionAfterLogin) return;
 
         if (!("Notification" in window)) return;
         if (Notification.permission !== "granted") {
-            sessionStorage.setItem('notificationPromptShownThisSession', 'true');
+            sessionStorage.removeItem('showNotificationPromptOnFirstQuestion');
             setShowNotificationPrompt(true);
         }
     };
@@ -838,22 +837,22 @@ export default function Home() {
                 />
 
                 {showNotificationPrompt && (
-                    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 relative">
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 sm:p-8 max-w-[380px] w-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 relative animate-in zoom-in-95 duration-300">
                             <h3 className="text-lg font-bold mb-2 text-slate-900 dark:text-white flex items-center gap-2">
                                 <AlertCircle size={20} className="text-[#ffb732]" />
-                                Turn On Notifications
+                                Stay Updated
                             </h3>
-                            <div className="text-sm text-slate-500 dark:text-slate-400 mb-5 space-y-3">
-                                <p className="font-semibold text-slate-700 dark:text-slate-200">
+                            <div className="text-sm text-slate-500 dark:text-slate-400 mb-6 space-y-4">
+                                <p className="font-semibold text-slate-700 dark:text-slate-200 leading-relaxed">
                                     Get notified instantly when someone answers your question.
                                 </p>
-                                <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-3">
-                                    <p className="font-semibold text-slate-800 dark:text-slate-100 mb-1.5">
-                                        How to turn on notifications in Chrome:
+                                <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 p-4">
+                                    <p className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                                        Chrome Instructions:
                                     </p>
-                                    <p>
-                                        Click the <Lock size={12} className="inline mx-1" /> icon in the address bar, then set <b>Notifications</b> to <b>Allow</b>.
+                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                                        Click the <Lock size={12} className="inline-block mb-0.5 mx-0.5 text-slate-400" /> icon in the address bar and set <b>Notifications</b> to <b>Allow</b>.
                                     </p>
                                 </div>
                             </div>

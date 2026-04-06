@@ -172,10 +172,10 @@ export default function LoginPage() {
                                 
                                 {/* Header */}
                                 <div className="text-center space-y-3 mb-10 relative z-10 pt-4">
-                                    <h3 className="text-[2.35rem] sm:text-[3rem] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-[1.05]">
+                                    <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
                                         {step === 1 ? "Welcome." : "Finish Sign Up"}
                                     </h3>
-                                    <p className="text-slate-500 dark:text-slate-400 font-medium text-[15px] sm:text-[17px] max-w-[320px] mx-auto leading-relaxed">
+                                    <p className="text-slate-500 dark:text-slate-400 font-medium text-sm sm:text-base max-w-[320px] mx-auto leading-relaxed">
                                         {step === 1 ? "Join your neighborhood. Sign in to see what's happening." : "Pick a username to complete your profile."}
                                     </p>
                                 </div>
@@ -253,7 +253,7 @@ export default function LoginPage() {
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-semibold group-focus-within/input:text-[#ffb732] transition-colors">@</span>
                                                     <input
                                                         type="text"
-                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-4 text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-[#ffb732]/30 focus:border-[#ffb732] transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 placeholder:font-medium shadow-sm hover:border-slate-300 dark:hover:border-slate-600"
+                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-4 text-sm sm:text-base font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-[#ffb732]/30 focus:border-[#ffb732] transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 placeholder:font-medium shadow-sm hover:border-slate-300 dark:hover:border-slate-600"
                                                         placeholder="AppienUser"
                                                         value={username}
                                                         onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
@@ -267,7 +267,7 @@ export default function LoginPage() {
                                                     <select
                                                         value={location}
                                                         onChange={(e) => setLocation(e.target.value)}
-                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-4 text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-[#ffb732]/30 focus:border-[#ffb732] transition-all shadow-sm appearance-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-600"
+                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-4 text-sm sm:text-base font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-[#ffb732]/30 focus:border-[#ffb732] transition-all shadow-sm appearance-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-600"
                                                     >
                                                         <option value="HSR">HSR Layout</option>
                                                         <option value="Koramangala">Koramangala</option>
@@ -281,7 +281,7 @@ export default function LoginPage() {
                                                 <button
                                                     onClick={handleCompleteProfile}
                                                     disabled={isLoading || username.length < 3}
-                                                    className="w-full bg-gradient-to-br from-[#ffb732] to-amber-500 text-black py-4.5 rounded-2xl font-black text-[15px] uppercase tracking-wide hover:from-[#f9ab21] hover:to-amber-600 hover:shadow-[0_10px_30px_-10px_rgba(255,183,50,0.5)] hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2 active:scale-95 duration-200 shadow-md"
+                                                    className="w-full bg-gradient-to-br from-[#ffb732] to-amber-500 text-black py-4 rounded-2xl font-bold text-sm sm:text-base uppercase tracking-wide hover:from-[#f9ab21] hover:to-amber-600 hover:shadow-[0_10px_30px_-10px_rgba(255,183,50,0.5)] hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2 active:scale-95 duration-200 shadow-md"
                                                 >
                                                     {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Take Me In <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" /></>}
                                                 </button>
