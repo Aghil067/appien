@@ -252,7 +252,7 @@ export default function InboxPage() {
     const active = chats.filter(c => c.status === 'accepted' || (c.status === 'pending' && c.askerId === currentUserId));
 
     return (
-        <div className="h-[100dvh] pt-[64px] sm:pt-[72px] bg-[#f8fafc] dark:bg-slate-950 font-sans relative overflow-hidden flex flex-col transition-colors duration-300">
+        <div className="flex-1 h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] bg-[#f8fafc] dark:bg-slate-950 font-sans relative overflow-hidden flex flex-col transition-colors duration-300">
 
             <ConfirmModal
                 isOpen={confirmState.isOpen}
