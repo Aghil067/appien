@@ -677,7 +677,17 @@ export default function Home() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        if (!token) { router.push('/login'); } else { fetchData(token); }
+        if (!token) {
+            router.push('/login');
+            return;
+        }
+
+        if (typeof window !== "undefined" && !sessionStorage.getItem('notificationPromptSessionInitialized')) {
+            sessionStorage.setItem('notificationPromptSessionInitialized', 'true');
+            sessionStorage.setItem('showNotificationPromptOnFirstQuestion', 'true');
+        }
+
+        fetchData(token);
     }, [router]);
 
     const handleDeleteQuestion = async (id: string) => {
