@@ -439,18 +439,17 @@ export default function Home() {
         setConfirmState({ isOpen: true, title, message, onConfirm, isDestructive });
     };
 
-    const maybePromptNotificationsAfterFirstQuestion = () => {
+    const maybePromptNotificationsAfterQuestion = () => {
         if (typeof window === "undefined") return;
 
-        const shouldPromptOnFirstQuestion =
-            sessionStorage.getItem('showNotificationPromptOnFirstQuestion') === 'true';
+        const alreadyPromptedThisSession =
+            sessionStorage.getItem('notificationPromptShownThisSession') === 'true';
 
-        if (!shouldPromptOnFirstQuestion) return;
-
-        sessionStorage.removeItem('showNotificationPromptOnFirstQuestion');
+        if (alreadyPromptedThisSession) return;
 
         if (!("Notification" in window)) return;
         if (Notification.permission !== "granted") {
+            sessionStorage.setItem('notificationPromptShownThisSession', 'true');
             setShowNotificationPrompt(true);
         }
     };
@@ -684,7 +683,7 @@ export default function Home() {
 
         if (typeof window !== "undefined" && !sessionStorage.getItem('notificationPromptSessionInitialized')) {
             sessionStorage.setItem('notificationPromptSessionInitialized', 'true');
-            sessionStorage.setItem('showNotificationPromptOnFirstQuestion', 'true');
+            sessionStorage.removeItem('notificationPromptShownThisSession');
         }
 
         fetchData(token);
@@ -778,7 +777,7 @@ export default function Home() {
             setSuggestions([]);
 
             toast.success("Question posted!");
-            maybePromptNotificationsAfterFirstQuestion();
+            maybePromptNotificationsAfterQuestion();
 
         } catch (error: any) {
             if (axios.isAxiosError(error) && error.response?.status === 400) {

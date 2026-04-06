@@ -96,6 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         if ('serviceWorker' in navigator && typeof window !== 'undefined') {
             navigator.serviceWorker.register('/sw.js')
                 .then(async (reg) => {
+                    reg.update().catch(() => {});
 
                     try {
                         const token = localStorage.getItem('token');
