@@ -172,10 +172,10 @@ export default function LoginPage() {
                                 
                                 {/* Header */}
                                 <div className="text-center space-y-3 mb-10 relative z-10 pt-4">
-                                    <h3 className="text-4xl sm:text-[44px] font-black text-transparent bg-clip-text bg-gradient-to-br from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 tracking-[-0.04em] leading-tight">
+                                    <h3 className="text-[2.35rem] sm:text-[3rem] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-[1.05]">
                                         {step === 1 ? "Welcome." : "Finish Sign Up"}
                                     </h3>
-                                    <p className="text-slate-500 dark:text-slate-400 font-medium text-[15px] sm:text-base max-w-[300px] mx-auto leading-relaxed">
+                                    <p className="text-slate-500 dark:text-slate-400 font-medium text-[15px] sm:text-[17px] max-w-[320px] mx-auto leading-relaxed">
                                         {step === 1 ? "Join your neighborhood. Sign in to see what's happening." : "Pick a username to complete your profile."}
                                     </p>
                                 </div>
